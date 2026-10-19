@@ -39,3 +39,42 @@ export function formatCents(cents: bigint): string {
 export function formatItemCount(count: number): string {
   return `${count} ${count === 1 ? "item" : "itens"}`;
 }
+
+/** Mesmo lançamento nas visões por pessoa e por cartão, sem cópias. */
+export function selectCardInvoiceSummary(
+  data: AppData,
+  cardId: string,
+  reference: string,
+) {
+  const invoices = new Map(
+    data.invoices
+      .filter((i) => i.reference === reference)
+      .map((i) => [i.id, i]),
+  );
+  const people = new Map(data.people.map((p) => [p.id, p]));
+  const purchases = data.purchases
+    .filter((p) => p.cardId === cardId && invoices.has(p.invoiceId))
+    .map((purchase) => ({
+      purchase,
+      person: people.get(invoices.get(purchase.invoiceId)!.personId)!,
+    }));
+  const groups = data.people
+    .map((person) => {
+      const rows = purchases.filter((row) => row.person.id === person.id);
+      return {
+        person,
+        purchaseCount: rows.length,
+        subtotalCents: rows.reduce(
+          (sum, row) => sum + BigInt(row.purchase.amountCents),
+          0n,
+        ),
+      };
+    })
+    .filter((group) => group.purchaseCount > 0);
+  return {
+    purchases,
+    groups,
+    purchaseCount: purchases.length,
+    totalCents: groups.reduce((sum, group) => sum + group.subtotalCents, 0n),
+  };
+}

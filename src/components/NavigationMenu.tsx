@@ -84,7 +84,16 @@ export function NavigationMenu({ context, page, onNavigate }: Props) {
           <nav aria-label="Menu principal">
             {(
               [
-                ["Organizar", ["fatura", "pessoas", "cartoes", "historico"]],
+                [
+                  "Organizar",
+                  [
+                    "fatura",
+                    "faturasCartao",
+                    "pessoas",
+                    "cartoes",
+                    "historico",
+                  ],
+                ],
                 [
                   "Compartilhar e backup",
                   ["whatsapp", "exportar", "backup", "importar"],

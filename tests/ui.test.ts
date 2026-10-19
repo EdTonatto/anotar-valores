@@ -742,3 +742,52 @@ test("valor bancário formata dígitos, permite apagar e colar, salva e edita em
     12356,
   );
 });
+
+test("lançar por cartão atualiza faturas individuais e mantém compras únicas", async () => {
+  const u = await start();
+  await add(u, "Compra Ana", "1000");
+  await go(u, "Pessoas");
+  await u.click(screen.getByRole("button", { name: "+ Nova pessoa" }));
+  await u.type(screen.getByLabelText("Cadastrar pessoa"), "Bruno");
+  await u.click(screen.getByRole("button", { name: "Salvar" }));
+  await go(u, "Faturas por cartão");
+  const personSelect = screen.getByLabelText("Pessoa que fez a compra");
+  const bruno = within(personSelect).getByRole("option", {
+    name: "Bruno",
+  }) as HTMLOptionElement;
+  await u.selectOptions(personSelect, bruno.value);
+  await add(u, "Compra Bruno", "2500");
+  assert.ok(screen.getByText("R$ 35,00"));
+  assert.ok(screen.getByText("Compra Ana"));
+  assert.ok(screen.getByText("Compra Bruno"));
+  await u.click(screen.getByRole("button", { name: /Bruno.*1 item/ }));
+  assert.equal(screen.queryByText("Compra Ana"), null);
+  assert.ok(screen.getByText("Compra Bruno"));
+  const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY)!);
+  assert.equal(stored.purchases.length, 2);
+});
+
+test("cartão zerado fica oculto por pessoa e reaparece ao lançar pela visão por cartão", async () => {
+  const u = await start();
+  assert.ok(screen.getByText("Ainda não há compras registradas."));
+  assert.equal(document.querySelector(".card-panel"), null);
+  await go(u, "Cartões");
+  assert.ok(screen.getByRole("button", { name: "Renomear cartão Roxo" }));
+  await go(u, "Faturas por cartão");
+  assert.ok(screen.getByText("Nenhuma compra neste cartão e mês."));
+  await add(u, "Compra compartilhada", "12356");
+  await go(u, "Fatura atual");
+  assert.ok(screen.getByRole("button", { name: /Roxo/, expanded: true }));
+  assert.ok(screen.getByText("Compra compartilhada"));
+  assert.equal(screen.queryByText("Ainda não há compras registradas."), null);
+  await go(u, "Faturas por cartão");
+  await u.click(
+    screen.getByRole("button", { name: "Excluir compra Compra compartilhada" }),
+  );
+  await u.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+  assert.ok(screen.getByText("Nenhuma compra neste cartão e mês."));
+  await go(u, "Fatura atual");
+  assert.equal(document.querySelector(".card-panel"), null);
+  assert.ok(screen.getByText("Ainda não há compras registradas."));
+  assert.equal(screen.queryByRole("button", { name: "Expandir todos" }), null);
+});
