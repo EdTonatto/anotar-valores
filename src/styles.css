@@ -45,6 +45,98 @@
   --danger-border: #ca8969;
   --shadow: #00000024;
 }
+:root[data-theme="pink"] {
+  color-scheme: light;
+  --page: #fff5f9;
+  --surface: #ffffff;
+  --surface-subtle: #fff9fc;
+  --surface-accent: #fce7f1;
+  --hover: #f9d7e8;
+  --text: #3d2030;
+  --muted: #775066;
+  --accent-text: #92275b;
+  --border: #eac6d8;
+  --primary: #98295e;
+  --primary-hover: #7d204d;
+  --on-primary: #ffe1ed;
+  --focus: #ad3772;
+  --logo-dot: #ffb8d5;
+  --warning-bg: #fff0df;
+  --warning-text: #9f4d00;
+  --warning-border: #edc79a;
+  --danger: #9d3b24;
+  --danger-border: #b46742;
+  --shadow: #26392a04;
+}
+:root[data-theme="pink-dark"] {
+  color-scheme: dark;
+  --page: #21131c;
+  --surface: #301e29;
+  --surface-subtle: #382330;
+  --surface-accent: #442a3b;
+  --hover: #56354b;
+  --text: #f9e7f1;
+  --muted: #d9b5c9;
+  --accent-text: #ffb0d6;
+  --border: #705066;
+  --primary: #98295e;
+  --primary-hover: #7d204d;
+  --on-primary: #ffe1ed;
+  --focus: #ffadd3;
+  --logo-dot: #ffb8d5;
+  --warning-bg: #3d2c20;
+  --warning-text: #ffd0a1;
+  --warning-border: #936c43;
+  --danger: #ffb5a0;
+  --danger-border: #ca8969;
+  --shadow: #00000024;
+}
+:root[data-theme="lilac"] {
+  color-scheme: light;
+  --page: #f9f5ff;
+  --surface: #ffffff;
+  --surface-subtle: #fcfaff;
+  --surface-accent: #eee5fa;
+  --hover: #e4d5f5;
+  --text: #30213e;
+  --muted: #69547d;
+  --accent-text: #704195;
+  --border: #d9c8e9;
+  --primary: #754299;
+  --primary-hover: #61357f;
+  --on-primary: #eadcf7;
+  --focus: #9663bd;
+  --logo-dot: #dab8fa;
+  --warning-bg: #fff0df;
+  --warning-text: #9f4d00;
+  --warning-border: #edc79a;
+  --danger: #9d3b24;
+  --danger-border: #b46742;
+  --shadow: #26392a04;
+}
+:root[data-theme="lilac-dark"] {
+  color-scheme: dark;
+  --page: #1b1524;
+  --surface: #292033;
+  --surface-subtle: #31263d;
+  --surface-accent: #3c2d4c;
+  --hover: #4b385e;
+  --text: #efe7f9;
+  --muted: #c8b8dc;
+  --accent-text: #d8b4fe;
+  --border: #605071;
+  --primary: #754299;
+  --primary-hover: #61357f;
+  --on-primary: #eadcf7;
+  --focus: #d8b4fe;
+  --logo-dot: #dab8fa;
+  --warning-bg: #3d2c20;
+  --warning-text: #ffd0a1;
+  --warning-border: #936c43;
+  --danger: #ffb5a0;
+  --danger-border: #ca8969;
+  --shadow: #00000024;
+}
 :root {
   font-family:
     system-ui,

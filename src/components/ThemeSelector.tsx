@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 
-export type ThemePreference = "system" | "light" | "dark";
+export type ThemePreference =
+  "system" | "light" | "dark" | "pink" | "pink-dark" | "lilac" | "lilac-dark";
 export const THEME_KEY = "anotar-valores:theme";
 
 function readPreference(): ThemePreference {
   try {
     const value = window.localStorage.getItem(THEME_KEY);
-    return value === "light" || value === "dark" ? value : "system";
+    return value === "light" ||
+      value === "dark" ||
+      value === "pink" ||
+      value === "pink-dark" ||
+      value === "lilac" ||
+      value === "lilac-dark"
+      ? value
+      : "system";
   } catch {
     return "system";
   }
@@ -63,6 +71,10 @@ export function ThemeSelector({
         <option value="system">Sistema</option>
         <option value="light">Claro</option>
         <option value="dark">Escuro</option>
+        <option value="pink">Rosa</option>
+        <option value="pink-dark">Rosa Escuro</option>
+        <option value="lilac">Lilás</option>
+        <option value="lilac-dark">Lilás Escuro</option>
       </select>
     </label>
   );

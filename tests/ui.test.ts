@@ -405,6 +405,46 @@ test("tema: sistema, escolha manual, recarga e armazenamento indisponível", asy
   }
 });
 
+test("temas coloridos: seleção, persistência e recarga", async () => {
+  const { THEME_KEY } = await import("../src/components/ThemeSelector");
+  const { readFileSync } = await import("node:fs");
+  const { runInNewContext } = await import("node:vm");
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
+  const u = user();
+  for (const [value, label] of [
+    ["pink", "Rosa"],
+    ["pink-dark", "Rosa Escuro"],
+    ["lilac", "Lilás"],
+    ["lilac-dark", "Lilás Escuro"],
+  ]) {
+    render(createElement(App));
+    await go(u, "Aparência");
+    await u.selectOptions(
+      screen.getByLabelText("Tema"),
+      screen.getByRole("option", { name: label }),
+    );
+    assert.equal(document.documentElement.dataset.theme, value);
+    assert.equal(window.localStorage.getItem(THEME_KEY), value);
+    cleanup();
+    const initialDocument = { documentElement: { dataset: { theme: "" } } };
+    runInNewContext(script, {
+      document: initialDocument,
+      localStorage: window.localStorage,
+      matchMedia: () => ({ matches: !value.endsWith("dark") }),
+    });
+    assert.equal(initialDocument.documentElement.dataset.theme, value);
+    render(createElement(App));
+    await go(u, "Aparência");
+    assert.equal(
+      (screen.getByLabelText("Tema") as HTMLSelectElement).value,
+      value,
+    );
+    assert.equal(document.documentElement.dataset.theme, value);
+    cleanup();
+  }
+});
+
 test("menu: troca de página, contexto, fechamento e restauração do foco", async () => {
   const u = await start();
   await add(u, "Compra do menu", "15,00");
