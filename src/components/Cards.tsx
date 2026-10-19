@@ -15,6 +15,7 @@ export interface CardsHandle {
   newPurchase: () => void;
 }
 interface Props {
+  mode: "invoice" | "manage";
   ref?: Ref<CardsHandle>;
   data: AppData;
   update: (next: AppData) => boolean;
@@ -23,6 +24,7 @@ interface Props {
   reference: string;
 }
 export function Cards({
+  mode,
   ref,
   data,
   update,
@@ -44,7 +46,8 @@ export function Cards({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [focusRequest, setFocusRequest] = useState(0);
   const person = data.people.find((p) => p.id === personId);
-  const hasContext = !!person && isReference(reference);
+  const managing = mode === "manage";
+  const hasContext = !managing && !!person && isReference(reference);
   const { groups, totalCents, purchaseCount } = selectInvoiceSummary(
     data,
     personId,
@@ -163,24 +166,29 @@ export function Cards({
     <section className="cards-section" aria-labelledby="cards-title">
       <div className="cards-heading">
         <div>
-          <span className="eyebrow">CADASTRO COMPARTILHADO</span>
+          <span className="eyebrow">
+            {managing ? "CADASTRO COMPARTILHADO" : "LANÇAMENTOS DA FATURA"}
+          </span>
           <h2 id="cards-title" tabIndex={-1}>
-            Seus cartões
+            {managing ? "Seus cartões" : "Compras por cartão"}
           </h2>
         </div>
-        <button
-          className="primary"
-          disabled={!writable}
-          onClick={() => beginEdit("new", "")}
-        >
-          + Novo cartão
-        </button>
+        {managing && (
+          <button
+            className="primary"
+            disabled={!writable}
+            onClick={() => beginEdit("new", "")}
+          >
+            + Novo cartão
+          </button>
+        )}
       </div>
       <p className="cards-description">
-        Os cartões ficam disponíveis para todas as pessoas e meses.{" "}
-        {hasContext
-          ? `Compras e subtotais de ${person.name} · ${formatReference(reference)}.`
-          : "Selecione uma pessoa e competência para consultar compras e subtotais."}
+        {managing
+          ? "Os cartões ficam disponíveis para todas as pessoas e meses. Cadastre, renomeie ou exclua cartões sem compras vinculadas."
+          : hasContext
+            ? `Compras e subtotais de ${person.name} · ${formatReference(reference)}.`
+            : "Selecione uma pessoa e competência para consultar compras e subtotais."}
       </p>
       {hasContext && data.cards.length > 0 && (
         <PurchaseEditor
@@ -206,7 +214,7 @@ export function Cards({
       <p className="card-notice" role="status">
         {notice}
       </p>
-      {groups.length > 0 && (
+      {!managing && groups.length > 0 && (
         <div className="card-toolbar">
           <button onClick={() => setCollapsed(new Set())}>
             Expandir todos
@@ -237,46 +245,52 @@ export function Cards({
           return (
             <article className="card-panel" key={card.id}>
               <div className="card-header">
-                <button
-                  className="card-toggle"
-                  aria-expanded={expanded}
-                  aria-controls={`card-content-${card.id}`}
-                  onClick={() => toggle(card.id)}
-                >
-                  <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
-                  <strong>{card.name}</strong>
-                  {hasContext && (
-                    <span className="card-item-count">
-                      {formatItemCount(purchases.length)}
-                    </span>
-                  )}
-                  {!expanded && hasContext && (
-                    <span className="card-amount">
-                      {formatCents(subtotalCents)}
-                    </span>
-                  )}
-                </button>
-                <div className="card-actions">
+                {managing ? (
+                  <strong className="managed-card-name">{card.name}</strong>
+                ) : (
                   <button
-                    disabled={!writable}
-                    onClick={() => beginEdit(card.id, card.name)}
-                    aria-label={`Renomear cartão ${card.name}`}
+                    className="card-toggle"
+                    aria-expanded={expanded}
+                    aria-controls={`card-content-${card.id}`}
+                    onClick={() => toggle(card.id)}
                   >
-                    Renomear
+                    <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+                    <strong>{card.name}</strong>
+                    {hasContext && (
+                      <span className="card-item-count">
+                        {formatItemCount(purchases.length)}
+                      </span>
+                    )}
+                    {!expanded && hasContext && (
+                      <span className="card-amount">
+                        {formatCents(subtotalCents)}
+                      </span>
+                    )}
                   </button>
-                  <button
-                    disabled={!writable}
-                    onClick={() => {
-                      setPendingDelete(card.id);
-                      setEditor(null);
-                      setError("");
-                      setNotice("");
-                    }}
-                    aria-label={`Excluir cartão ${card.name}`}
-                  >
-                    Excluir
-                  </button>
-                </div>
+                )}
+                {managing && (
+                  <div className="card-actions">
+                    <button
+                      disabled={!writable}
+                      onClick={() => beginEdit(card.id, card.name)}
+                      aria-label={`Renomear cartão ${card.name}`}
+                    >
+                      Renomear
+                    </button>
+                    <button
+                      disabled={!writable}
+                      onClick={() => {
+                        setPendingDelete(card.id);
+                        setEditor(null);
+                        setError("");
+                        setNotice("");
+                      }}
+                      aria-label={`Excluir cartão ${card.name}`}
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                )}
               </div>
               {editor === card.id && renderEditor(card.id)}
               {pendingDelete === card.id && (
@@ -306,89 +320,93 @@ export function Cards({
                   </div>
                 </div>
               )}
-              <div id={`card-content-${card.id}`} hidden={!expanded}>
-                {hasContext ? (
-                  <>
-                    {purchases.length ? (
-                      <ul className="purchases">
-                        {purchases.map((p) => (
-                          <li key={p.id} className="purchase-row">
-                            <div>
-                              <strong>{p.description}</strong>
-                              <small>
-                                {p.installment
-                                  ? `Parcela ${p.installment.current}/${p.installment.total}`
-                                  : "À vista"}
-                              </small>
-                            </div>
-                            <span>{formatCents(BigInt(p.amountCents))}</span>
-                            <div className="purchase-item-actions">
-                              <button
-                                disabled={!writable}
-                                aria-label={`Editar compra ${p.description}`}
-                                onClick={() => {
-                                  setPurchaseEdit({
-                                    id: p.id,
-                                    personId,
-                                    reference,
-                                  });
-                                  setPurchaseDelete(null);
-                                }}
-                              >
-                                Editar
-                              </button>
-                              <button
-                                disabled={!writable}
-                                aria-label={`Excluir compra ${p.description}`}
-                                onClick={() => setPurchaseDelete(p.id)}
-                              >
-                                Excluir
-                              </button>
-                            </div>
-                            {purchaseDelete === p.id && (
-                              <div
-                                className="purchase-delete"
-                                role="group"
-                                aria-label="Confirmar exclusão da compra"
-                              >
-                                <p>
-                                  Excluir “{p.description}” de{" "}
-                                  {formatCents(BigInt(p.amountCents))} desta
-                                  fatura?
-                                </p>
+              {!managing && (
+                <div id={`card-content-${card.id}`} hidden={!expanded}>
+                  {hasContext ? (
+                    <>
+                      {purchases.length ? (
+                        <ul className="purchases">
+                          {purchases.map((p) => (
+                            <li key={p.id} className="purchase-row">
+                              <div>
+                                <strong>{p.description}</strong>
+                                <small>
+                                  {p.installment
+                                    ? `Parcela ${p.installment.current}/${p.installment.total}`
+                                    : "À vista"}
+                                </small>
+                              </div>
+                              <span>{formatCents(BigInt(p.amountCents))}</span>
+                              <div className="purchase-item-actions">
                                 <button
-                                  className="danger"
                                   disabled={!writable}
-                                  onClick={() => removePurchase(p.id)}
+                                  aria-label={`Editar compra ${p.description}`}
+                                  onClick={() => {
+                                    setPurchaseEdit({
+                                      id: p.id,
+                                      personId,
+                                      reference,
+                                    });
+                                    setPurchaseDelete(null);
+                                  }}
                                 >
-                                  Confirmar exclusão
+                                  Editar
                                 </button>
-                                <button onClick={() => setPurchaseDelete(null)}>
-                                  Cancelar
+                                <button
+                                  disabled={!writable}
+                                  aria-label={`Excluir compra ${p.description}`}
+                                  onClick={() => setPurchaseDelete(p.id)}
+                                >
+                                  Excluir
                                 </button>
                               </div>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="card-empty">
-                        Nenhuma compra neste cartão para a pessoa e o mês
-                        selecionados.
-                      </p>
-                    )}
-                    <div className="card-subtotal">
-                      <span>Subtotal</span>
-                      <strong>{formatCents(subtotalCents)}</strong>
-                    </div>
-                  </>
-                ) : (
-                  <p className="card-empty">
-                    Selecione uma pessoa e um mês para ver as compras deste
-                    cartão.
-                  </p>
-                )}
-              </div>
+                              {purchaseDelete === p.id && (
+                                <div
+                                  className="purchase-delete"
+                                  role="group"
+                                  aria-label="Confirmar exclusão da compra"
+                                >
+                                  <p>
+                                    Excluir “{p.description}” de{" "}
+                                    {formatCents(BigInt(p.amountCents))} desta
+                                    fatura?
+                                  </p>
+                                  <button
+                                    className="danger"
+                                    disabled={!writable}
+                                    onClick={() => removePurchase(p.id)}
+                                  >
+                                    Confirmar exclusão
+                                  </button>
+                                  <button
+                                    onClick={() => setPurchaseDelete(null)}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="card-empty">
+                          Nenhuma compra neste cartão para a pessoa e o mês
+                          selecionados.
+                        </p>
+                      )}
+                      <div className="card-subtotal">
+                        <span>Subtotal</span>
+                        <strong>{formatCents(subtotalCents)}</strong>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="card-empty">
+                      Selecione uma pessoa e um mês para ver as compras deste
+                      cartão.
+                    </p>
+                  )}
+                </div>
+              )}
             </article>
           );
         })}

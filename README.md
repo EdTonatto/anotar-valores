@@ -1,6 +1,6 @@
 # Anotar Valores
 
-Aplicação de tela única para registrar compras de outras pessoas em cartões compartilhados. MVP v1.0 em React, TypeScript e Vite.
+Aplicação para registrar compras de outras pessoas em cartões compartilhados, com páginas separadas acessíveis pelo menu lateral. MVP v1.0 em React, TypeScript e Vite.
 
 ## Funcionalidades
 
@@ -10,6 +10,13 @@ Aplicação de tela única para registrar compras de outras pessoas em cartões 
 - Cartões expansíveis, subtotais e total geral em centavos exatos.
 - Relatório para copiar no WhatsApp.
 - JSON da fatura ou backup completo, com importação validada e confirmação.
+- Páginas independentes de Fatura, Pessoas, Cartões, Histórico, WhatsApp, Exportar JSON, Backup, Importar JSON e Aparência.
+
+## Navegação
+
+O menu abre a página escolhida e exibe apenas os controles daquela área. O cadastro de cartões fica em **Cartões**; os lançamentos, parcelas, contadores e totais ficam em **Fatura atual**. As páginas de WhatsApp e JSON têm botões próprios para copiar; abrir uma página não copia nem importa dados automaticamente.
+
+As rotas usam `#/fatura`, `#/pessoas`, `#/cartoes`, `#/historico`, `#/whatsapp`, `#/exportar`, `#/backup`, `#/importar` e `#/aparencia`, compatíveis com GitHub Pages sem configuração adicional. Pessoa e competência selecionadas são preservadas nos parâmetros da rota (`pessoa` e `mes`), inclusive ao recarregar e usar Voltar/Avançar. Acessar um link em outro dispositivo não transfere os registros: use o backup JSON.
 
 ## Executar localmente
 
@@ -27,7 +34,7 @@ npm run preview
 npm run format:check
 ```
 
-O build produz `dist/`. Os 50 testes incluem domínio, persistência e interface React em DOM simulado. Revisão visual e permissões reais de clipboard devem ser verificadas no navegador.
+O build produz `dist/`. Os testes incluem domínio, persistência, isolamento das páginas, rotas, histórico de navegação e interface React em DOM simulado. Revisão visual e permissões reais de clipboard devem ser verificadas no navegador.
 
 ## GitHub Pages
 
@@ -63,7 +70,7 @@ A importação oferece mesclagem por ID ou substituição somente das compras da
 
 ### Aparência
 
-O seletor **Tema**, no cabeçalho, oferece **Sistema**, **Claro** e **Escuro**.
+O seletor **Tema**, na página **Aparência** do menu lateral, oferece **Sistema**, **Claro** e **Escuro**.
 Por padrão, a aparência acompanha o sistema, inclusive quando ele muda durante
 o uso. A escolha manual fica salva neste navegador e é sincronizada entre abas.
 O tema é aplicado antes da interface carregar para evitar um clarão inicial.

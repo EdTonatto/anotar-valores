@@ -1,25 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { ThemeSelector } from "./ThemeSelector";
-import type { ReportAction } from "./Reports";
+import { pages, type Page } from "../hooks/useAppRoute";
 
 interface Props {
   context: string;
-  hasPerson: boolean;
-  hasContext: boolean;
-  hasInvoice: boolean;
-  writable: boolean;
-  onReport: (action: ReportAction) => void;
+  page: Page;
+  onNavigate: (page: Page) => void;
 }
 
 /** Native modal semantics keep focus inside the drawer and the page inert. */
-export function NavigationMenu({
-  context,
-  hasPerson,
-  hasContext,
-  hasInvoice,
-  writable,
-  onReport,
-}: Props) {
+export function NavigationMenu({ context, page, onNavigate }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -39,16 +28,9 @@ export function NavigationMenu({
     trigger.current?.focus();
   }
 
-  function navigate(id: string) {
+  function navigate(destination: Page) {
     close();
-    const target = document.getElementById(id);
-    target?.focus({ preventScroll: true });
-    target?.scrollIntoView({ block: "start" });
-  }
-
-  function report(action: ReportAction) {
-    navigate("reports-title");
-    onReport(action);
+    onNavigate(destination);
   }
 
   return (
@@ -100,58 +82,31 @@ export function NavigationMenu({
           </div>
           <p className="menu-context">{context}</p>
           <nav aria-label="Menu principal">
-            <h3>Organizar</h3>
-            <button type="button" onClick={() => navigate("workspace-title")}>
-              Fatura atual
-            </button>
-            <button type="button" onClick={() => navigate("person")}>
-              Pessoas e faturas
-            </button>
-            <button type="button" onClick={() => navigate("cards-title")}>
-              Cartões e compras
-            </button>
-            <button
-              type="button"
-              disabled={!hasPerson}
-              onClick={() => navigate("history-title")}
-            >
-              Histórico de faturas
-            </button>
-            <h3>Compartilhar e backup</h3>
-            <button
-              type="button"
-              disabled={!hasContext}
-              onClick={() => report("whatsapp")}
-            >
-              Copiar para WhatsApp
-            </button>
-            <button
-              type="button"
-              disabled={!hasInvoice}
-              onClick={() => report("copy-invoice")}
-            >
-              Copiar JSON da fatura
-            </button>
-            <button
-              type="button"
-              disabled={!hasInvoice}
-              onClick={() => report("view-invoice")}
-            >
-              Ver JSON da fatura
-            </button>
-            <button type="button" onClick={() => report("backup")}>
-              Copiar backup completo
-            </button>
-            <button
-              type="button"
-              disabled={!writable}
-              onClick={() => navigate("import-json")}
-            >
-              Importar JSON
-            </button>
+            {(
+              [
+                ["Organizar", ["fatura", "pessoas", "cartoes", "historico"]],
+                [
+                  "Compartilhar e backup",
+                  ["whatsapp", "exportar", "backup", "importar"],
+                ],
+                ["Preferências", ["aparencia"]],
+              ] as [string, Page[]][]
+            ).map(([group, entries]) => (
+              <div key={group} className="menu-group">
+                <h3>{group}</h3>
+                {entries.map((destination) => (
+                  <button
+                    key={destination}
+                    type="button"
+                    aria-current={page === destination ? "page" : undefined}
+                    onClick={() => navigate(destination)}
+                  >
+                    {pages[destination]}
+                  </button>
+                ))}
+              </div>
+            ))}
           </nav>
-          <h3>Aparência</h3>
-          <ThemeSelector />
           <p className="menu-version">Anotar Valores · v1.0</p>
         </div>
       </dialog>

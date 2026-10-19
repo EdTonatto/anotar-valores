@@ -1,4 +1,4 @@
-import { useImperativeHandle, useRef, useState, type Ref } from "react";
+import { useRef, useState } from "react";
 import type { AppData } from "../domain/models";
 import {
   canonicalData,
@@ -11,13 +11,8 @@ import {
 } from "../domain/reports";
 import { formatReference, isReference } from "../domain/peopleAndInvoices";
 import { formatCents, selectInvoiceSummary } from "../domain/totals";
-export type ReportAction =
-  "whatsapp" | "copy-invoice" | "view-invoice" | "backup";
-export interface ReportsHandle {
-  run: (action: ReportAction) => void;
-}
 interface Props {
-  ref?: Ref<ReportsHandle>;
+  page: "whatsapp" | "exportar" | "backup" | "importar";
   data: AppData;
   update: (data: AppData) => boolean;
   writable: boolean;
@@ -26,7 +21,7 @@ interface Props {
   onImported: (personId: string, reference: string) => void;
 }
 export function Reports({
-  ref,
+  page,
   data,
   update,
   writable,
@@ -81,28 +76,6 @@ export function Reports({
       setError(e instanceof Error ? e.message : "Não foi possível exportar.");
     }
   }
-  useImperativeHandle(ref, () => ({
-    run(action) {
-      if (action === "whatsapp" && hasContext) {
-        void present(
-          "Relatório para WhatsApp",
-          whatsappReport(data, personId, reference),
-          true,
-        );
-      } else if (
-        (action === "copy-invoice" || action === "view-invoice") &&
-        hasInvoice
-      ) {
-        showInvoice(action === "copy-invoice");
-      } else if (action === "backup") {
-        void present(
-          "Backup completo JSON",
-          JSON.stringify(canonicalData(data), null, 2),
-          true,
-        );
-      }
-    },
-  }));
   function review() {
     setPreview(null);
     setConfirmed(false);
@@ -148,50 +121,78 @@ export function Reports({
   }
   return (
     <section className="reports-section" aria-labelledby="reports-title">
-      <span className="eyebrow">COMPARTILHAR E RESTAURAR</span>
       <h2 id="reports-title" tabIndex={-1}>
-        WhatsApp e JSON
+        {
+          {
+            whatsapp: "Compartilhar fatura",
+            exportar: "Exportar fatura selecionada",
+            backup: "Guardar todas as anotações",
+            importar: "Restaurar anotações",
+          }[page]
+        }
       </h2>
       <p className="cards-description">
-        Exporte a fatura selecionada ou guarde um backup completo. Nada é
-        enviado automaticamente.
+        {
+          {
+            whatsapp:
+              "Copie a mensagem da pessoa e do mês selecionados. Nada é enviado automaticamente.",
+            exportar: "Visualize ou copie o JSON apenas da fatura selecionada.",
+            backup:
+              "Copie um backup completo com todas as pessoas, cartões e faturas.",
+            importar:
+              "Importe uma fatura ou backup e revise o impacto antes de confirmar.",
+          }[page]
+        }
       </p>
       <div className="report-actions">
-        <button
-          disabled={!hasContext}
-          className="primary"
-          onClick={() =>
-            void present(
-              "Relatório para WhatsApp",
-              whatsappReport(data, personId, reference),
-              true,
-            )
-          }
-        >
-          Copiar para WhatsApp
-        </button>
-        <button disabled={!hasInvoice} onClick={() => showInvoice(true)}>
-          Copiar JSON da fatura
-        </button>
-        <button disabled={!hasInvoice} onClick={() => showInvoice(false)}>
-          Ver JSON da fatura
-        </button>
-        <button
-          onClick={() =>
-            void present(
-              "Backup completo JSON",
-              JSON.stringify(canonicalData(data), null, 2),
-              true,
-            )
-          }
-        >
-          Copiar backup completo
-        </button>
+        {page === "whatsapp" && (
+          <button
+            disabled={!hasContext}
+            className="primary"
+            onClick={() =>
+              void present(
+                "Relatório para WhatsApp",
+                whatsappReport(data, personId, reference),
+                true,
+              )
+            }
+          >
+            Copiar para WhatsApp
+          </button>
+        )}
+        {page === "exportar" && (
+          <>
+            <button disabled={!hasInvoice} onClick={() => showInvoice(true)}>
+              Copiar JSON da fatura
+            </button>
+            <button disabled={!hasInvoice} onClick={() => showInvoice(false)}>
+              Ver JSON da fatura
+            </button>
+          </>
+        )}
+        {page === "backup" && (
+          <button
+            onClick={() =>
+              void present(
+                "Backup completo JSON",
+                JSON.stringify(canonicalData(data), null, 2),
+                true,
+              )
+            }
+          >
+            Copiar backup completo
+          </button>
+        )}
       </div>
-      {!hasInvoice && (
+      {page === "exportar" && !hasInvoice && (
         <p className="cards-description">
           Para exportar o JSON de uma fatura, crie ou selecione uma fatura
           existente.
+        </p>
+      )}
+      {page === "whatsapp" && !hasContext && (
+        <p className="cards-description">
+          Selecione uma pessoa e um mês válidos para preparar a mensagem.
         </p>
       )}
       {output && (
@@ -220,147 +221,156 @@ export function Reports({
           </div>
         </div>
       )}
-      <div className="import-panel">
-        <h3>Importar JSON</h3>
-        <label htmlFor="import-json">
-          Cole o JSON de uma fatura ou backup completo
-        </label>
-        <textarea
-          id="import-json"
-          value={source}
-          onChange={(e) => {
-            setSource(e.target.value);
-            invalidate();
-          }}
-          rows={6}
-          placeholder='{"schemaVersion": 1, ...}'
-          spellCheck={false}
-        />
-        <div className="import-options">
-          <div>
-            <label htmlFor="import-mode">Compras das faturas importadas</label>
-            <select
-              id="import-mode"
-              value={mode}
-              onChange={(e) => {
-                setMode(e.target.value as ImportMode);
-                invalidate();
-              }}
-            >
-              <option value="merge">
-                Mesclar por ID (sem duplicar IDs iguais)
-              </option>
-              <option value="replace">
-                Substituir somente as faturas importadas
-              </option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="import-names">Se o mesmo ID tiver outro nome</label>
-            <select
-              id="import-names"
-              value={names}
-              onChange={(e) => {
-                setNames(e.target.value as NamePolicy);
-                invalidate();
-              }}
-            >
-              <option value="local">Manter nomes atuais</option>
-              <option value="incoming">
-                Usar nomes do JSON em todo o histórico
-              </option>
-            </select>
-          </div>
-        </div>
-        <p className="cards-description">
-          Mesclar mantém compras atuais e adiciona IDs novos. Substituir remove
-          as compras atuais apenas das pessoas/meses presentes no JSON. Outros
-          períodos permanecem. Nomes iguais com IDs diferentes precisam ser
-          corrigidos antes da importação.
-        </p>
-        <button disabled={!source.trim() || !writable} onClick={review}>
-          Validar e visualizar impacto
-        </button>
-        {preview && (
-          <div className="import-preview">
-            <h3>Confira antes de confirmar</h3>
-            <p>
-              {preview.incoming.people.length} pessoa(s) ·{" "}
-              {preview.incoming.cards.length} cartão(ões) ·{" "}
-              {preview.plan.invoiceCount} fatura(s) ·{" "}
-              {preview.incoming.purchases.length} compra(s) no JSON.
-            </p>
-            <p>
-              {preview.plan.added} compra(s) a gravar · {preview.plan.unchanged}{" "}
-              já idênticas · {preview.plan.removed} compra(s) atuais removidas
-              pelo modo substituir.
-            </p>
-            <ul>
-              {preview.incoming.invoices.map((f) => {
-                const summary = selectInvoiceSummary(
-                  preview.plan.data,
-                  f.personId,
-                  f.reference,
-                );
-                return (
-                  <li key={f.id}>
-                    {
-                      preview.plan.data.people.find((p) => p.id === f.personId)
-                        ?.name
-                    }{" "}
-                    · {formatReference(f.reference)} ({f.reference}):{" "}
-                    {summary.purchaseCount} compra(s), total após importar{" "}
-                    {formatCents(summary.totalCents)}
-                  </li>
-                );
-              })}
-            </ul>
-            {preview.plan.conflicts.length > 0 && (
-              <div>
-                <strong>
-                  Conflitos de nomes —{" "}
-                  {names === "local"
-                    ? "manter nomes atuais"
-                    : "usar nomes do JSON globalmente"}
-                  :
-                </strong>
-                <ul>
-                  {preview.plan.conflicts.map((text, index) => (
-                    <li key={index}>{text}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <label className="import-confirm">
-              <input
-                type="checkbox"
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-              />{" "}
-              Revisei as faturas, o modo de importação e o impacto sobre os
-              nomes. Confirmo aplicar estas alterações.
-            </label>
-            <div className="report-actions">
-              <button
-                className="primary"
-                disabled={!confirmed || !writable}
-                onClick={apply}
-              >
-                Confirmar importação
-              </button>
-              <button
-                onClick={() => {
-                  setPreview(null);
-                  setConfirmed(false);
-                  setNotice("Importação cancelada. Nenhum dado foi alterado.");
+      {page === "importar" && (
+        <div className="import-panel">
+          <h3>Importar JSON</h3>
+          <label htmlFor="import-json">
+            Cole o JSON de uma fatura ou backup completo
+          </label>
+          <textarea
+            id="import-json"
+            value={source}
+            onChange={(e) => {
+              setSource(e.target.value);
+              invalidate();
+            }}
+            rows={6}
+            placeholder='{"schemaVersion": 1, ...}'
+            spellCheck={false}
+          />
+          <div className="import-options">
+            <div>
+              <label htmlFor="import-mode">
+                Compras das faturas importadas
+              </label>
+              <select
+                id="import-mode"
+                value={mode}
+                onChange={(e) => {
+                  setMode(e.target.value as ImportMode);
+                  invalidate();
                 }}
               >
-                Cancelar
-              </button>
+                <option value="merge">
+                  Mesclar por ID (sem duplicar IDs iguais)
+                </option>
+                <option value="replace">
+                  Substituir somente as faturas importadas
+                </option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="import-names">
+                Se o mesmo ID tiver outro nome
+              </label>
+              <select
+                id="import-names"
+                value={names}
+                onChange={(e) => {
+                  setNames(e.target.value as NamePolicy);
+                  invalidate();
+                }}
+              >
+                <option value="local">Manter nomes atuais</option>
+                <option value="incoming">
+                  Usar nomes do JSON em todo o histórico
+                </option>
+              </select>
             </div>
           </div>
-        )}
-      </div>
+          <p className="cards-description">
+            Mesclar mantém compras atuais e adiciona IDs novos. Substituir
+            remove as compras atuais apenas das pessoas/meses presentes no JSON.
+            Outros períodos permanecem. Nomes iguais com IDs diferentes precisam
+            ser corrigidos antes da importação.
+          </p>
+          <button disabled={!source.trim() || !writable} onClick={review}>
+            Validar e visualizar impacto
+          </button>
+          {preview && (
+            <div className="import-preview">
+              <h3>Confira antes de confirmar</h3>
+              <p>
+                {preview.incoming.people.length} pessoa(s) ·{" "}
+                {preview.incoming.cards.length} cartão(ões) ·{" "}
+                {preview.plan.invoiceCount} fatura(s) ·{" "}
+                {preview.incoming.purchases.length} compra(s) no JSON.
+              </p>
+              <p>
+                {preview.plan.added} compra(s) a gravar ·{" "}
+                {preview.plan.unchanged} já idênticas · {preview.plan.removed}{" "}
+                compra(s) atuais removidas pelo modo substituir.
+              </p>
+              <ul>
+                {preview.incoming.invoices.map((f) => {
+                  const summary = selectInvoiceSummary(
+                    preview.plan.data,
+                    f.personId,
+                    f.reference,
+                  );
+                  return (
+                    <li key={f.id}>
+                      {
+                        preview.plan.data.people.find(
+                          (p) => p.id === f.personId,
+                        )?.name
+                      }{" "}
+                      · {formatReference(f.reference)} ({f.reference}):{" "}
+                      {summary.purchaseCount} compra(s), total após importar{" "}
+                      {formatCents(summary.totalCents)}
+                    </li>
+                  );
+                })}
+              </ul>
+              {preview.plan.conflicts.length > 0 && (
+                <div>
+                  <strong>
+                    Conflitos de nomes —{" "}
+                    {names === "local"
+                      ? "manter nomes atuais"
+                      : "usar nomes do JSON globalmente"}
+                    :
+                  </strong>
+                  <ul>
+                    {preview.plan.conflicts.map((text, index) => (
+                      <li key={index}>{text}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <label className="import-confirm">
+                <input
+                  type="checkbox"
+                  checked={confirmed}
+                  onChange={(e) => setConfirmed(e.target.checked)}
+                />{" "}
+                Revisei as faturas, o modo de importação e o impacto sobre os
+                nomes. Confirmo aplicar estas alterações.
+              </label>
+              <div className="report-actions">
+                <button
+                  className="primary"
+                  disabled={!confirmed || !writable}
+                  onClick={apply}
+                >
+                  Confirmar importação
+                </button>
+                <button
+                  onClick={() => {
+                    setPreview(null);
+                    setConfirmed(false);
+                    setNotice(
+                      "Importação cancelada. Nenhum dado foi alterado.",
+                    );
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {error && (
         <p className="field-error" role="alert">
           {error}

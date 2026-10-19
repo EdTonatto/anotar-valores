@@ -1,10 +1,12 @@
 import { NavigationMenu } from "./NavigationMenu";
-import { Reports, type ReportsHandle } from "./Reports";
-import { useRef, useState, type FormEvent } from "react";
+import { Reports } from "./Reports";
+import { ThemeSelector, useThemePreference } from "./ThemeSelector";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { formatItemCount, selectInvoiceSummary } from "../domain/totals";
 import { formatCents } from "../domain/cards";
 import { Cards, type CardsHandle } from "./Cards";
 import { useAppData } from "../hooks/useAppData";
+import { pages, useAppRoute, type Page } from "../hooks/useAppRoute";
 import {
   currentReference,
   ensureInvoice,
@@ -13,22 +15,50 @@ import {
   savePerson,
   selectInvoice,
 } from "../domain/peopleAndInvoices";
+
 export function App() {
   const { data, update, error, writable } = useAppData();
-  const reports = useRef<ReportsHandle>(null);
+  const route = useAppRoute();
+  const { page } = route;
+  const personId = route.personId ?? data.people[0]?.id ?? "";
+  const reference = route.reference ?? currentReference();
   const cards = useRef<CardsHandle>(null);
-  const [personId, setPersonId] = useState(() => data.people[0]?.id ?? "");
-  const [reference, setReference] = useState(currentReference);
+  const title = useRef<HTMLHeadingElement>(null);
+  const theme = useThemePreference();
   const [editor, setEditor] = useState<"new" | "edit" | null>(null);
   const [name, setName] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const person = data.people.find((p) => p.id === personId);
-  const { invoice, purchases } = selectInvoice(data, personId, reference);
+  const { invoice } = selectInvoice(data, personId, reference);
   const summary = selectInvoiceSummary(data, personId, reference);
+  const hasContext = !!person && isReference(reference);
   const history = data.invoices
     .filter((f) => f.personId === personId)
     .sort((a, b) => b.reference.localeCompare(a.reference));
+
+  useEffect(() => {
+    document.title = `${pages[page]} · Anotar Valores`;
+    title.current?.focus({ preventScroll: true });
+    title.current?.scrollIntoView({ block: "start" });
+  }, [page]);
+
+  function navigate(destination: Page) {
+    setEditor(null);
+    setFormError(null);
+    setNotice("");
+    route.navigate(destination, personId, reference);
+  }
+  function setPersonId(id: string) {
+    setEditor(null);
+    setFormError(null);
+    setNotice("");
+    route.navigate(page, id, reference, true);
+  }
+  function setReference(value: string) {
+    setNotice("");
+    route.navigate(page, personId, value, true);
+  }
   function submitPerson(event: FormEvent) {
     event.preventDefault();
     try {
@@ -39,8 +69,6 @@ export function App() {
       );
       if (update(result.data)) {
         setPersonId(result.personId);
-        setEditor(null);
-        setFormError(null);
         setNotice(
           editor === "edit"
             ? "Nome atualizado. O histórico foi preservado."
@@ -63,113 +91,129 @@ export function App() {
       );
     }
   }
+  const showContext = [
+    "fatura",
+    "historico",
+    "whatsapp",
+    "exportar",
+    "pessoas",
+  ].includes(page);
   return (
     <div className="app">
-      <a className="skip-link" href="#main-content">
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById("main-content")?.focus();
+        }}
+      >
         Pular para o conteúdo
       </a>
       <header>
         <NavigationMenu
+          page={page}
+          onNavigate={navigate}
           context={
             person
               ? `${person.name} · ${formatReference(reference)}`
               : "Selecione uma pessoa e um mês"
           }
-          hasPerson={!!person}
-          hasContext={!!person && isReference(reference)}
-          hasInvoice={!!invoice}
-          writable={writable}
-          onReport={(action) => reports.current?.run(action)}
         />
-        <a className="brand" href="./">
+        <a
+          className="brand"
+          href="#/fatura"
+          onClick={(event) => {
+            event.preventDefault();
+            navigate("fatura");
+          }}
+        >
           <span className="logo">
             av<span>·</span>
           </span>
           Anotar Valores
         </a>
-        <div className="header-actions">
-          <span className="badge">MVP · v1.0</span>
-        </div>
+        <span className="badge">MVP · v1.0</span>
       </header>
-      <main id="main-content" tabIndex={-1}>
-        <div className="eyebrow">
-          COMPRAS COMPARTILHADAS, CONTAS ORGANIZADAS
+      <main id="main-content" tabIndex={-1} className="page-main">
+        <div className="page-heading">
+          <div>
+            <span className="eyebrow">ANOTAR VALORES</span>
+            <h1 id="page-title" ref={title} tabIndex={-1}>
+              {pages[page]}
+            </h1>
+          </div>
+          <span className={writable ? "status" : "status blocked"}>
+            {writable
+              ? "● Dados salvos neste navegador"
+              : "● Gravação bloqueada"}
+          </span>
         </div>
-        <h1>
-          Cada pessoa.
-          <br />
-          <span>Sua própria fatura.</span>
-        </h1>
-        <p className="intro">
-          Selecione uma pessoa e um mês para organizar as anotações e consultar
-          o histórico.
-        </p>
         {error && (
           <div className="error" role="alert">
             {error}
           </div>
         )}
-        <section className="workspace" aria-labelledby="workspace-title">
-          <div className="workspace-top">
-            <div>
-              <span className="eyebrow">SEU ESPAÇO</span>
-              <h2 id="workspace-title" tabIndex={-1}>
-                Pessoas e faturas
-              </h2>
-            </div>
-            <span className={writable ? "status" : "status blocked"}>
-              {writable
-                ? "● Dados salvos neste navegador"
-                : "● Gravação bloqueada"}
-            </span>
-          </div>
-          <div className="filters">
-            <div className="person-field">
-              <label htmlFor="person">Pessoa</label>
-              <select
-                id="person"
-                value={personId}
-                onChange={(e) => {
-                  setPersonId(e.target.value);
-                  setEditor(null);
-                  setNotice("");
-                  setFormError(null);
-                }}
-              >
-                <option value="" disabled>
-                  Selecione uma pessoa
-                </option>
-                {data.people.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
+        {showContext && (
+          <section
+            className="page-context"
+            aria-label={
+              page === "pessoas" ? "Pessoa selecionada" : "Contexto da fatura"
+            }
+          >
+            <div className="filters">
+              <div className="person-field">
+                <label htmlFor="person">Pessoa</label>
+                <select
+                  id="person"
+                  value={personId}
+                  onChange={(e) => setPersonId(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Selecione uma pessoa
                   </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="reference">Mês da fatura</label>
-              <input
-                id="reference"
-                type="month"
-                min="0001-01"
-                max="9999-12"
-                required
-                value={reference}
-                aria-invalid={!isReference(reference)}
-                aria-describedby={
-                  !isReference(reference) ? "reference-error" : undefined
-                }
-                onChange={(e) => {
-                  setReference(e.target.value);
-                  setNotice("");
-                }}
-              />
-              {!isReference(reference) && (
-                <span className="field-error" id="reference-error">
-                  Selecione um mês e ano válidos.
-                </span>
+                  {data.people.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {page !== "pessoas" && (
+                <div>
+                  <label htmlFor="reference">Mês da fatura</label>
+                  <input
+                    id="reference"
+                    type="month"
+                    min="0001-01"
+                    max="9999-12"
+                    required
+                    value={reference}
+                    aria-invalid={!isReference(reference)}
+                    aria-describedby={
+                      !isReference(reference) ? "reference-error" : undefined
+                    }
+                    onChange={(e) => setReference(e.target.value)}
+                  />
+                  {!isReference(reference) && (
+                    <span className="field-error" id="reference-error">
+                      Selecione um mês e ano válidos.
+                    </span>
+                  )}
+                </div>
               )}
             </div>
+          </section>
+        )}
+        <p className="page-notice" role="status">
+          {notice}
+        </p>
+        {page === "pessoas" && (
+          <section className="page-panel" aria-label="Cadastro de pessoas">
+            <p>
+              Cadastre e renomeie as pessoas que usam os cartões. O histórico
+              fica associado à pessoa.
+            </p>
             <div className="person-actions">
               <button
                 className="primary"
@@ -193,171 +237,163 @@ export function App() {
                 Renomear
               </button>
             </div>
-          </div>
-          {editor && (
-            <form className="person-editor" onSubmit={submitPerson}>
-              <label htmlFor="name">
-                {editor === "new" ? "Cadastrar pessoa" : "Editar nome"}
-              </label>
-              <div className="editor-row">
-                <input
-                  autoFocus
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Nome da pessoa"
-                  required
-                  aria-invalid={!!formError}
-                  aria-describedby={formError ? "name-error" : undefined}
-                />
-                <button className="primary" disabled={!writable} type="submit">
-                  Salvar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditor(null);
-                    setFormError(null);
-                  }}
-                >
-                  Cancelar
-                </button>
-              </div>
-              {formError && (
-                <p className="field-error" role="alert" id="name-error">
-                  {formError}
-                </p>
-              )}
-            </form>
-          )}
-          <p className="notice" role="status">
-            {notice}
-          </p>
-          {person && isReference(reference) && (
-            <div className="invoice-overview">
-              <div className="overview-total">
-                <div>
-                  Total da fatura
-                  <small>
-                    {formatItemCount(summary.purchaseCount)} ·{" "}
-                    {formatReference(reference)}
-                  </small>
+            {editor && (
+              <form className="person-editor" onSubmit={submitPerson}>
+                <label htmlFor="name">
+                  {editor === "new" ? "Cadastrar pessoa" : "Editar nome"}
+                </label>
+                <div className="editor-row">
+                  <input
+                    autoFocus
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Nome da pessoa"
+                    required
+                    aria-invalid={!!formError}
+                    aria-describedby={formError ? "name-error" : undefined}
+                  />
+                  <button
+                    className="primary"
+                    disabled={!writable}
+                    type="submit"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditor(null);
+                      setFormError(null);
+                    }}
+                  >
+                    Cancelar
+                  </button>
                 </div>
-                <strong>{formatCents(summary.totalCents)}</strong>
-              </div>
-              <div className="overview-actions">
-                <button
-                  className="primary"
-                  disabled={!writable || data.cards.length === 0}
-                  onClick={() => cards.current?.newPurchase()}
-                >
-                  + Nova compra
-                </button>
-                <button
-                  onClick={() => {
-                    reports.current?.run("whatsapp");
-                    document
-                      .getElementById("reports-title")
-                      ?.scrollIntoView({ block: "start" });
-                  }}
-                >
-                  WhatsApp
-                </button>
-              </div>
-            </div>
-          )}
-          <div className="invoice-heading">
-            <div>
-              <span className="eyebrow">FATURA SELECIONADA</span>
-              <h2>
-                {person
-                  ? `${person.name} · ${formatReference(reference)}`
-                  : "Cadastre sua primeira pessoa"}
-              </h2>
-            </div>
-            {person && isReference(reference) && (
-              <span className="pill">
-                {invoice ? "Fatura criada" : "Sem fatura neste mês"}
-              </span>
+                {formError && (
+                  <p className="field-error" role="alert" id="name-error">
+                    {formError}
+                  </p>
+                )}
+              </form>
             )}
-          </div>
-          {!person || !isReference(reference) ? (
-            <div className="empty">
-              <div className="empty-icon" aria-hidden="true">
-                ↗
+            {person && (
+              <button
+                className="open-invoice"
+                onClick={() => navigate("fatura")}
+              >
+                Abrir fatura de {person.name}
+              </button>
+            )}
+          </section>
+        )}
+        {page === "fatura" && (
+          <>
+            {!hasContext ? (
+              <div className="empty">
+                <h2>
+                  {person
+                    ? "Escolha o mês da fatura."
+                    : "Para quem vamos anotar?"}
+                </h2>
+                <p>
+                  {person
+                    ? "Informe um mês e ano válidos."
+                    : "Cadastre uma pessoa para começar."}
+                </p>
+                {!person && (
+                  <button
+                    className="primary"
+                    onClick={() => navigate("pessoas")}
+                  >
+                    Cadastrar pessoa
+                  </button>
+                )}
               </div>
-              <h3>
-                {person
-                  ? "Escolha o mês da fatura."
-                  : "Para quem vamos anotar?"}
-              </h3>
-              <p>
-                {person
-                  ? "Informe mês e ano para consultar as anotações."
-                  : "Cadastre uma pessoa para começar a organizar suas faturas."}
-              </p>
-            </div>
-          ) : purchases.length ? (
-            <p className="cards-description">
-              Consulte as compras agrupadas por cartão abaixo.
-            </p>
-          ) : (
-            <div className="empty">
-              <div className="empty-icon" aria-hidden="true">
-                ↗
-              </div>
-              <h3>Nenhuma compra neste mês.</h3>
-              <p>
-                {invoice
-                  ? "Adicione compras no formulário dos cartões abaixo."
-                  : "Ao salvar uma compra abaixo, a fatura será criada automaticamente. Se preferir, crie uma fatura vazia agora."}
-              </p>
-              {!invoice && (
-                <button
-                  className="primary"
-                  disabled={!writable}
-                  onClick={createInvoice}
-                >
-                  Criar fatura de {formatReference(reference)}
-                </button>
-              )}
-            </div>
-          )}
-        </section>
-        <Cards
-          ref={cards}
-          data={data}
-          update={update}
-          writable={writable}
-          personId={personId}
-          reference={reference}
-        />
-        {person && (
-          <section className="history" aria-labelledby="history-title">
-            <div>
-              <span className="eyebrow">COMPETÊNCIAS SALVAS</span>
-              <h2 id="history-title" tabIndex={-1}>
-                Histórico de {person.name}
-              </h2>
-            </div>
+            ) : (
+              <>
+                <div className="overview-total">
+                  <div>
+                    Total da fatura
+                    <small>
+                      {person.name} · {formatReference(reference)} ·{" "}
+                      {formatItemCount(summary.purchaseCount)}
+                    </small>
+                  </div>
+                  <strong>{formatCents(summary.totalCents)}</strong>
+                </div>
+                <div className="overview-actions">
+                  <button
+                    className="primary"
+                    disabled={!writable || data.cards.length === 0}
+                    onClick={() => cards.current?.newPurchase()}
+                  >
+                    + Nova compra
+                  </button>
+                  <button onClick={() => navigate("whatsapp")}>WhatsApp</button>
+                  {!invoice && (
+                    <button disabled={!writable} onClick={createInvoice}>
+                      Criar fatura de {formatReference(reference)}
+                    </button>
+                  )}
+                </div>
+                {data.cards.length === 0 ? (
+                  <div className="empty">
+                    <h2>Cadastre seu primeiro cartão.</h2>
+                    <button
+                      className="primary"
+                      onClick={() => navigate("cartoes")}
+                    >
+                      Cadastrar cartão
+                    </button>
+                  </div>
+                ) : (
+                  <Cards
+                    ref={cards}
+                    mode="invoice"
+                    key={`${personId}/${reference}`}
+                    data={data}
+                    update={update}
+                    writable={writable}
+                    personId={personId}
+                    reference={reference}
+                  />
+                )}
+              </>
+            )}
+          </>
+        )}
+        {page === "cartoes" && (
+          <Cards
+            mode="manage"
+            data={data}
+            update={update}
+            writable={writable}
+            personId={personId}
+            reference={reference}
+          />
+        )}
+        {page === "historico" && (
+          <section className="history" aria-label="Faturas salvas">
+            <h2>
+              {person ? `Histórico de ${person.name}` : "Selecione uma pessoa"}
+            </h2>
             {history.length ? (
               <div className="history-list">
                 {history.map((f) => (
                   <button
                     key={f.id}
-                    aria-pressed={f.reference === reference}
                     onClick={() => {
-                      setReference(f.reference);
                       setNotice("");
+                      route.navigate("fatura", personId, f.reference);
                     }}
                   >
                     {formatReference(f.reference)}
                     <span>
-                      {
+                      {formatItemCount(
                         data.purchases.filter((p) => p.invoiceId === f.id)
-                          .length
-                      }{" "}
-                      compras
+                          .length,
+                      )}
                     </span>
                   </button>
                 ))}
@@ -367,28 +403,47 @@ export function App() {
                 As faturas criadas para esta pessoa aparecerão aqui.
               </p>
             )}
+            {!person && (
+              <button onClick={() => navigate("pessoas")}>
+                Cadastrar pessoa
+              </button>
+            )}
           </section>
         )}
-        <Reports
-          ref={reports}
-          data={data}
-          update={update}
-          writable={writable}
-          personId={personId}
-          reference={reference}
-          onImported={(id, month) => {
-            setPersonId(id);
-            setReference(month);
-            setEditor(null);
-            setNotice("");
-          }}
-        />
+        {(page === "whatsapp" ||
+          page === "exportar" ||
+          page === "backup" ||
+          page === "importar") && (
+          <Reports
+            key={
+              page === "importar" ? page : `${page}/${personId}/${reference}`
+            }
+            page={page}
+            data={data}
+            update={update}
+            writable={writable}
+            personId={personId}
+            reference={reference}
+            onImported={(id, month) => {
+              route.navigate("importar", id, month, true);
+              setEditor(null);
+            }}
+          />
+        )}
+        {page === "aparencia" && (
+          <section className="page-panel" aria-label="Preferência de tema">
+            <p>
+              Escolha o tema do aplicativo ou acompanhe a aparência do seu
+              dispositivo.
+            </p>
+            <ThemeSelector {...theme} />
+          </section>
+        )}
         <aside>
           <span aria-hidden="true">ⓘ</span>
           <p>
-            Seus dados ficam neste navegador e neste dispositivo. Não há
-            sincronização automática entre dispositivos. Limpar os dados do
-            navegador pode remover suas anotações. Use uma aba por vez.
+            Seus dados ficam neste navegador e neste dispositivo. Use o backup
+            completo para guardar todas as anotações.
           </p>
         </aside>
         <footer>

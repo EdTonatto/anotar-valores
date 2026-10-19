@@ -12,7 +12,7 @@ function readPreference(): ThemePreference {
   }
 }
 
-export function ThemeSelector() {
+export function useThemePreference() {
   const [preference, setPreference] = useState(readPreference);
   useEffect(() => {
     const media = window.matchMedia?.("(prefers-color-scheme: dark)");
@@ -46,6 +46,13 @@ export function ThemeSelector() {
     }
   }
 
+  return { preference, change };
+}
+
+export function ThemeSelector({
+  preference,
+  change,
+}: ReturnType<typeof useThemePreference>) {
   return (
     <label className="theme-control">
       Tema

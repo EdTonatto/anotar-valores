@@ -1085,7 +1085,7 @@ header > .brand {
   color: var(--muted);
   margin: 22px 12px 8px;
 }
-.navigation-menu nav > button {
+.navigation-menu .menu-group > button {
   display: block;
   width: 100%;
   text-align: left;
@@ -1095,21 +1095,109 @@ header > .brand {
   margin: 2px 0;
   border-radius: 8px;
 }
-.navigation-menu nav > button:hover:not(:disabled) {
+.navigation-menu .menu-group > button:hover:not(:disabled) {
   background: var(--hover);
 }
-.navigation-menu .theme-control {
-  padding: 8px 12px;
-  flex-wrap: wrap;
-}
-.navigation-menu .theme-control select {
-  flex: 1;
-  min-width: 100px;
+.navigation-menu .menu-group > button[aria-current="page"] {
+  background: var(--surface-accent);
+  color: var(--accent-text);
+  font-weight: 600;
 }
 .menu-version {
   color: var(--muted);
   font-size: 11px;
   padding: 12px;
+}
+
+/* Each route has its own content; shared selectors only appear where needed. */
+.page-main {
+  margin-top: 32px;
+}
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.page-heading h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  letter-spacing: -1px;
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+.page-context,
+.page-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.page-context .filters {
+  padding: 0;
+  margin: 0;
+}
+.page-panel > p {
+  color: var(--muted);
+  line-height: 1.7;
+  margin-top: 0;
+}
+.page-panel .person-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.page-panel .theme-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-width: 320px;
+}
+.page-panel .theme-control select {
+  flex: 1;
+  min-width: 100px;
+}
+.open-invoice {
+  margin-top: 20px;
+}
+.page-notice:empty {
+  display: none;
+}
+.managed-card-name {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 18px;
+  overflow-wrap: anywhere;
+}
+.page-main > .cards-section,
+.page-main > .reports-section,
+.page-main > .history {
+  margin-top: 20px;
+}
+.page-main > .reports-section > h2 {
+  margin-top: 0;
+}
+.page-main .import-panel {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+@media (max-width: 650px) {
+  .page-main {
+    margin-top: 24px;
+  }
+  .page-heading {
+    align-items: flex-start;
+  }
+  .page-heading .status {
+    width: 100%;
+  }
+  .page-context,
+  .page-panel {
+    padding: 18px;
+  }
 }
 .invoice-overview {
   padding: 0 30px 24px;
