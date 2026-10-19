@@ -17,12 +17,16 @@ export function canonicalData(data: AppData): AppData {
       id: f.id,
       personId: f.personId,
       reference: f.reference,
+      ...(f.updatedAt ? { updatedAt: f.updatedAt } : {}),
+      ...(f.cardUpdatedAt ? { cardUpdatedAt: { ...f.cardUpdatedAt } } : {}),
     })),
     purchases: data.purchases.map((p) => ({
       id: p.id,
       invoiceId: p.invoiceId,
       cardId: p.cardId,
       description: normalizeName(p.description),
+      ...(p.createdAt ? { createdAt: p.createdAt } : {}),
+      ...(p.updatedAt ? { updatedAt: p.updatedAt } : {}),
       amountCents: p.amountCents,
       installment: p.installment
         ? { current: p.installment.current, total: p.installment.total }

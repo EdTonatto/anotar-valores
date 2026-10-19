@@ -1,3 +1,4 @@
+import { formatTimestamp } from "../domain/totals";
 import { formatItemCount, selectInvoiceSummary } from "../domain/totals";
 import { PurchaseEditor } from "./PurchaseEditor";
 import { deletePurchase } from "../domain/purchases";
@@ -339,6 +340,9 @@ export function Cards({
                             <li key={p.id} className="purchase-row">
                               <div>
                                 <strong>{p.description}</strong>
+                                <small>
+                                  Registrada em: {formatTimestamp(p.createdAt)}
+                                </small>
                                 <small>
                                   {p.installment
                                     ? `Parcela ${p.installment.current}/${p.installment.total}`

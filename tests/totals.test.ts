@@ -132,7 +132,8 @@ test("fatura do cartão reúne pessoas, isola mês e reflete edição e exclusã
       ["q", 2000n],
     ],
   );
-  const id = summary.purchases[0].purchase.id;
+  const id = summary.purchases.find((row) => row.person.id === "p")!.purchase
+    .id;
   data = savePurchase(data, "p", "2026-10", draft("a", "15,00"), id);
   assert.equal(
     selectCardInvoiceSummary(data, "a", "2026-10").totalCents,
