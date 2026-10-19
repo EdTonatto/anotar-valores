@@ -795,3 +795,59 @@ test("cartão zerado fica oculto por pessoa e reaparece ao lançar pela visão p
   assert.ok(screen.getByText("Ainda não há compras registradas."));
   assert.equal(screen.queryByRole("button", { name: "Expandir todos" }), null);
 });
+
+test("editar nas duas visões permite transferir cartão e comprador sem duplicar", async () => {
+  const u = await start();
+  await add(u, "Compra transferida", "1234");
+  await go(u, "Pessoas");
+  await u.click(screen.getByRole("button", { name: "+ Nova pessoa" }));
+  await u.type(screen.getByLabelText("Cadastrar pessoa"), "Bruno");
+  await u.click(screen.getByRole("button", { name: "Salvar" }));
+  await go(u, "Cartões");
+  await u.click(screen.getByRole("button", { name: "+ Novo cartão" }));
+  await u.type(screen.getByLabelText("Nome ou apelido do cartão"), "Azul");
+  await u.click(screen.getByRole("button", { name: "Salvar cartão" }));
+  await go(u, "Faturas por cartão");
+  assert.equal(screen.queryByLabelText("Cartão", { exact: true }), null);
+  const read = () => JSON.parse(window.localStorage.getItem(STORAGE_KEY)!);
+  const original = read().purchases[0];
+  for (const page of ["Faturas por cartão", "Fatura por pessoa"]) {
+    if (page === "Fatura por pessoa") await go(u, page);
+    await u.click(
+      screen.getByRole("button", { name: "Editar compra Compra transferida" }),
+    );
+    const buyer = screen.getByLabelText("Pessoa que fez a compra");
+    const card = screen.getByLabelText("Cartão", { exact: true });
+    const stored = read();
+    const targetPerson = stored.people.find(
+      (p: { name: string }) =>
+        p.name === (page === "Faturas por cartão" ? "Bruno" : "Ana"),
+    );
+    const targetCard = stored.cards.find(
+      (c: { name: string }) =>
+        c.name === (page === "Faturas por cartão" ? "Azul" : "Roxo"),
+    );
+    await u.selectOptions(buyer, targetPerson.id);
+    await u.selectOptions(card, targetCard.id);
+    await u.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    const next = read();
+    assert.equal(next.purchases.length, 1);
+    assert.equal(next.purchases[0].id, original.id);
+    assert.equal(next.purchases[0].amountCents, 1234);
+    assert.equal(next.purchases[0].cardId, targetCard.id);
+    assert.equal(
+      next.invoices.find(
+        (f: { id: string }) => f.id === next.purchases[0].invoiceId,
+      ).personId,
+      targetPerson.id,
+    );
+    if (page === "Faturas por cartão") {
+      assert.ok(screen.getByText("Nenhuma compra neste cartão e mês."));
+      await go(u, "Fatura por pessoa");
+      await u.selectOptions(
+        screen.getByLabelText("Pessoa", { exact: true }),
+        targetPerson.id,
+      );
+    }
+  }
+});
