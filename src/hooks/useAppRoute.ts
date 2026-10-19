@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 export const pages = {
-  fatura: "Fatura atual",
+  fatura: "Fatura por pessoa",
   pessoas: "Pessoas",
   faturasCartao: "Faturas por cartão",
   cartoes: "Cartões",
