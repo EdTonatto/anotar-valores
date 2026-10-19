@@ -115,3 +115,36 @@ test("soma além do inteiro seguro mantém precisão e não altera dados", () =>
     "R$ 180.143.985.094.819,82",
   );
 });
+
+test("fatura do cartão reúne pessoas, isola mês e reflete edição e exclusão", async () => {
+  const { selectCardInvoiceSummary } = await import("../src/domain/totals");
+  let data = savePurchase(fixture(), "p", "2026-10", draft("a", "10,00"));
+  data = savePurchase(data, "q", "2026-10", draft("a", "20,00"));
+  data = savePurchase(data, "p", "2026-10", draft("b", "40,00"));
+  data = savePurchase(data, "q", "2026-11", draft("a", "80,00"));
+  const summary = selectCardInvoiceSummary(data, "a", "2026-10");
+  assert.equal(summary.totalCents, 3000n);
+  assert.equal(summary.purchaseCount, 2);
+  assert.deepEqual(
+    summary.groups.map((g) => [g.person.id, g.subtotalCents]),
+    [
+      ["p", 1000n],
+      ["q", 2000n],
+    ],
+  );
+  const id = summary.purchases[0].purchase.id;
+  data = savePurchase(data, "p", "2026-10", draft("a", "15,00"), id);
+  assert.equal(
+    selectCardInvoiceSummary(data, "a", "2026-10").totalCents,
+    3500n,
+  );
+  assert.equal(selectInvoiceSummary(data, "p", "2026-10").totalCents, 5500n);
+  data = deletePurchase(data, "p", "2026-10", id);
+  assert.equal(
+    selectCardInvoiceSummary(data, "a", "2026-10").totalCents,
+    2000n,
+  );
+  assert.equal(selectInvoiceSummary(data, "p", "2026-10").totalCents, 4000n);
+  assert.equal(isAppData(data), true);
+  assert.equal(selectCardInvoiceSummary(data, "c", "2026-10").totalCents, 0n);
+});

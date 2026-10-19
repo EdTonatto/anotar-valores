@@ -1,3 +1,4 @@
+import { CardInvoices } from "./CardInvoices";
 import { NavigationMenu } from "./NavigationMenu";
 import { Reports } from "./Reports";
 import { ThemeSelector, useThemePreference } from "./ThemeSelector";
@@ -362,6 +363,16 @@ export function App() {
               </>
             )}
           </>
+        )}
+        {page === "faturasCartao" && (
+          <CardInvoices
+            data={data}
+            update={update}
+            writable={writable}
+            reference={reference}
+            onReference={setReference}
+            onPerson={(id) => route.navigate("fatura", id, reference)}
+          />
         )}
         {page === "cartoes" && (
           <Cards
