@@ -70,7 +70,7 @@ A importação oferece mesclagem por ID ou substituição somente das compras da
 
 ### Aparência
 
-O seletor **Tema**, na página **Aparência** do menu lateral, oferece **Sistema**, **Claro** e **Escuro**.
+O seletor **Tema**, na página **Aparência** do menu lateral, oferece **Sistema**, **Claro**, **Escuro**, **Rosa** e **Rosa Escuro**.
 Por padrão, a aparência acompanha o sistema, inclusive quando ele muda durante
 o uso. A escolha manual fica salva neste navegador e é sincronizada entre abas.
 O tema é aplicado antes da interface carregar para evitar um clarão inicial.

@@ -371,6 +371,24 @@ test("tema: sistema, escolha manual, recarga e armazenamento indisponível", asy
       (screen.getByLabelText("Tema") as HTMLSelectElement).value,
       "dark",
     );
+    for (const theme of ["pink", "pink-dark"]) {
+      await u.selectOptions(screen.getByLabelText("Tema"), theme);
+      assert.equal(document.documentElement.dataset.theme, theme);
+      assert.equal(window.localStorage.getItem(THEME_KEY), theme);
+      act(() => {
+        media.matches = !media.matches;
+        listeners.forEach((listener) => listener());
+      });
+      assert.equal(document.documentElement.dataset.theme, theme);
+      cleanup();
+      render(createElement(App));
+      await go(u, "Aparência");
+      assert.equal(document.documentElement.dataset.theme, theme);
+      assert.equal(
+        (screen.getByLabelText("Tema") as HTMLSelectElement).value,
+        theme,
+      );
+    }
     await u.selectOptions(screen.getByLabelText("Tema"), "system");
     assert.equal(document.documentElement.dataset.theme, "light");
     window.localStorage.setItem(THEME_KEY, "dark");
