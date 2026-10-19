@@ -180,10 +180,9 @@ test("editar e excluir com cancelamento preservam contexto e totais; filtros iso
     null,
   );
   assert.ok(screen.getAllByText("R$ 0,00").length >= 1);
-  assert.equal(
-    document.querySelector(".card-item-count")?.textContent,
-    "0 itens",
-  );
+  assert.equal(document.querySelector(".card-panel"), null);
+  assert.ok(screen.getByText("Ainda não há compras registradas."));
+  assert.equal(screen.queryByRole("button", { name: "Expandir todos" }), null);
   fireEvent.change(screen.getByLabelText("Mês da fatura"), {
     target: { value: "2026-10" },
   });
