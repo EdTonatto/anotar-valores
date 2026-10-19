@@ -93,7 +93,10 @@ export function savePurchase(
     throw new Error("Compra não encontrada nesta pessoa e competência.");
   const next = ensureInvoice(data, personId, reference);
   const invoice = selectInvoice(next, personId, reference).invoice!;
+  const now = new Date().toISOString();
   const purchase = {
+    createdAt: existing ? existing.createdAt : now,
+    updatedAt: now,
     id: existing?.id ?? createId(),
     invoiceId: invoice.id,
     cardId: draft.cardId,
@@ -103,6 +106,19 @@ export function savePurchase(
   };
   return {
     ...next,
+    invoices: next.invoices.map((f) =>
+      f.id === invoice.id
+        ? {
+            ...f,
+            updatedAt: now,
+            cardUpdatedAt: {
+              ...f.cardUpdatedAt,
+              [draft.cardId]: now,
+              ...(existing ? { [existing.cardId]: now } : {}),
+            },
+          }
+        : f,
+    ),
     purchases: existing
       ? next.purchases.map((p) => (p.id === existing.id ? purchase : p))
       : [...next.purchases, purchase],
@@ -120,8 +136,19 @@ export function deletePurchase(
     )
   )
     throw new Error("Compra não encontrada nesta pessoa e competência.");
+  const purchase = data.purchases.find((p) => p.id === purchaseId)!;
+  const now = new Date().toISOString();
   return {
     ...data,
+    invoices: data.invoices.map((f) =>
+      f.id === purchase.invoiceId
+        ? {
+            ...f,
+            updatedAt: now,
+            cardUpdatedAt: { ...f.cardUpdatedAt, [purchase.cardId]: now },
+          }
+        : f,
+    ),
     purchases: data.purchases.filter((p) => p.id !== purchaseId),
   };
 }

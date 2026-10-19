@@ -1,3 +1,4 @@
+import { formatTimestamp } from "../domain/totals";
 import { CardInvoices } from "./CardInvoices";
 import { NavigationMenu } from "./NavigationMenu";
 import { Reports } from "./Reports";
@@ -319,6 +320,9 @@ export function App() {
                     <small>
                       {person.name} · {formatReference(reference)} ·{" "}
                       {formatItemCount(summary.purchaseCount)}
+                    </small>
+                    <small>
+                      Última atualização: {formatTimestamp(summary.updatedAt)}
                     </small>
                   </div>
                   <strong>{formatCents(summary.totalCents)}</strong>

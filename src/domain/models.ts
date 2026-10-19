@@ -11,12 +11,16 @@ export interface Fatura {
   id: string;
   personId: string;
   reference: string;
+  updatedAt?: string;
+  cardUpdatedAt?: Record<string, string>;
 }
 export interface Compra {
   id: string;
   invoiceId: string;
   cardId: string;
   description: string;
+  createdAt?: string;
+  updatedAt?: string;
   /** Valor cobrado nesta fatura, nunca o total da compra parcelada. */
   amountCents: number;
   installment: { current: number; total: number } | null;
@@ -42,6 +46,11 @@ const text = (v: unknown): v is string =>
   typeof v === "string" && v.trim().length > 0;
 const integer = (v: unknown): v is number =>
   typeof v === "number" && Number.isSafeInteger(v);
+const timestamp = (v: unknown) =>
+  v === undefined ||
+  (typeof v === "string" &&
+    /^\d{4}-\d{2}-\d{2}T/.test(v) &&
+    Number.isFinite(Date.parse(v)));
 export function isAppData(value: unknown): value is AppData {
   if (!record(value) || value.schemaVersion !== SCHEMA_VERSION) return false;
   const { people, cards, invoices, purchases } = value;
@@ -63,6 +72,12 @@ export function isAppData(value: unknown): value is AppData {
     !fs.every(
       (v) =>
         record(v) &&
+        timestamp(v.updatedAt) &&
+        (v.cardUpdatedAt === undefined ||
+          (record(v.cardUpdatedAt) &&
+            Object.values(v.cardUpdatedAt).every(
+              (date) => typeof date === "string" && timestamp(date),
+            ))) &&
         text(v.personId) &&
         personIds.has(v.personId) &&
         typeof v.reference === "string" &&
@@ -81,6 +96,8 @@ export function isAppData(value: unknown): value is AppData {
   return bs.every((v) => {
     if (
       !record(v) ||
+      !timestamp(v.createdAt) ||
+      !timestamp(v.updatedAt) ||
       !text(v.invoiceId) ||
       !invoiceIds.has(v.invoiceId) ||
       !text(v.cardId) ||

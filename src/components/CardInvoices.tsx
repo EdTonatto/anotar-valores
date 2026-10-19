@@ -1,3 +1,4 @@
+import { formatTimestamp } from "../domain/totals";
 import { useState } from "react";
 import type { AppData } from "../domain/models";
 import {
@@ -98,6 +99,9 @@ export function CardInvoices({
                 {card.name} · {formatReference(reference)} ·{" "}
                 {formatItemCount(summary.purchaseCount)}
               </small>
+              <small>
+                Última atualização: {formatTimestamp(summary.updatedAt)}
+              </small>
             </div>
             <strong>{formatCents(summary.totalCents)}</strong>
           </div>
@@ -161,6 +165,7 @@ export function CardInvoices({
               <li className="purchase-row" key={p.id}>
                 <div>
                   <strong>{p.description}</strong>
+                  <small>Registrada em: {formatTimestamp(p.createdAt)}</small>
                   <small>
                     {person.name} ·{" "}
                     {p.installment

@@ -194,3 +194,64 @@ test("reload preserva cadastro, edição e exclusão; quota mantém snapshot ant
   saveData(storage, data);
   assert.equal(loadData(storage).data.purchases.length, 0);
 });
+
+test("registro mantém data original, atualiza fatura e cartão inclusive após exclusão", () => {
+  const source = savePurchase(fixture(), "a", "2026-10", draft);
+  const original = "2020-01-01T12:00:00.000Z";
+  source.purchases[0].createdAt = original;
+  const id = source.purchases[0].id;
+  const edited = savePurchase(
+    source,
+    "a",
+    "2026-10",
+    { ...draft, cardId: "d" },
+    id,
+  );
+  assert.equal(edited.purchases[0].createdAt, original);
+  assert.equal(edited.invoices[0].updatedAt, edited.purchases[0].updatedAt);
+  assert.equal(
+    edited.invoices[0].cardUpdatedAt?.c,
+    edited.purchases[0].updatedAt,
+  );
+  assert.equal(
+    edited.invoices[0].cardUpdatedAt?.d,
+    edited.purchases[0].updatedAt,
+  );
+  const deleted = deletePurchase(edited, "a", "2026-10", id);
+  assert.ok(deleted.invoices[0].cardUpdatedAt?.d);
+  assert.equal(deleted.purchases.length, 0);
+});
+
+test("ambas as faturas ordenam pela criação, mantêm antigos e não alteram os dados", async () => {
+  const { selectInvoiceSummary, selectCardInvoiceSummary } =
+    await import("../src/domain/totals");
+  const { isAppData } = await import("../src/domain/models");
+  let data = savePurchase(fixture(), "a", "2026-10", draft);
+  data = savePurchase(data, "a", "2026-10", draft);
+  data = savePurchase(data, "a", "2026-10", draft);
+  delete data.purchases[0].createdAt;
+  data.purchases[1].createdAt = "2026-10-19T12:00:00.000Z";
+  data.purchases[2].createdAt = "2026-10-18T12:00:00.000Z";
+  const expected = [
+    data.purchases[1].id,
+    data.purchases[2].id,
+    data.purchases[0].id,
+  ];
+  const before = JSON.stringify(data);
+  assert.deepEqual(
+    selectInvoiceSummary(data, "a", "2026-10").groups[0].purchases.map(
+      (p) => p.id,
+    ),
+    expected,
+  );
+  assert.deepEqual(
+    selectCardInvoiceSummary(data, "c", "2026-10").purchases.map(
+      (r) => r.purchase.id,
+    ),
+    expected,
+  );
+  assert.equal(JSON.stringify(data), before);
+  assert.ok(isAppData(data));
+  data.purchases[0].createdAt = "invalid";
+  assert.equal(isAppData(data), false);
+});
