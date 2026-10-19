@@ -59,7 +59,7 @@ async function start() {
   await u.click(screen.getByRole("button", { name: "+ Nova pessoa" }));
   await u.type(screen.getByLabelText("Cadastrar pessoa"), "Ana");
   await u.click(screen.getByRole("button", { name: "Salvar" }));
-  await go(u, "Fatura atual");
+  await go(u, "Fatura por pessoa");
   fireEvent.change(screen.getByLabelText("Mês da fatura"), {
     target: { value: "2026-10" },
   });
@@ -67,7 +67,7 @@ async function start() {
   await u.click(screen.getByRole("button", { name: "+ Novo cartão" }));
   await u.type(screen.getByLabelText("Nome ou apelido do cartão"), "Roxo");
   await u.click(screen.getByRole("button", { name: "Salvar cartão" }));
-  await go(u, "Fatura atual");
+  await go(u, "Fatura por pessoa");
   return u;
 }
 async function add(
@@ -106,7 +106,7 @@ test("fluxo completo da interface: cadastro, parcelas, renomeação, recarga, Wh
   const saved = window.localStorage.getItem(STORAGE_KEY)!;
   cleanup();
   render(createElement(App));
-  await go(u, "Fatura atual");
+  await go(u, "Fatura por pessoa");
   fireEvent.change(screen.getByLabelText("Mês da fatura"), {
     target: { value: "2026-10" },
   });
@@ -456,7 +456,7 @@ test("menu: troca de página, contexto, fechamento e restauração do foco", asy
   assert.ok(within(dialog).getByText("Ana · outubro de 2026"));
   assert.equal(
     within(dialog)
-      .getByRole("button", { name: "Fatura atual" })
+      .getByRole("button", { name: "Fatura por pessoa" })
       .getAttribute("aria-current"),
     "page",
   );
@@ -475,7 +475,7 @@ test("menu: troca de página, contexto, fechamento e restauração do foco", asy
   await u.click(trigger);
   fireEvent(dialog, new dom.window.Event("cancel", { cancelable: true }));
   assert.equal(document.activeElement, trigger);
-  await go(u, "Fatura atual");
+  await go(u, "Fatura por pessoa");
   assert.ok(screen.getByText("Compra do menu", { exact: true }));
   assert.equal(
     (screen.getByLabelText("Mês da fatura") as HTMLInputElement).value,
@@ -593,7 +593,7 @@ test("cada página monta somente sua área e o menu não executa ações de cóp
     screen.queryByRole("button", { name: "Copiar backup completo" }),
     null,
   );
-  await go(u, "Fatura atual");
+  await go(u, "Fatura por pessoa");
   assert.ok(screen.getByText("Exclusiva da fatura", { exact: true }));
   assert.equal(document.querySelector(".reports-section"), null);
   assert.equal(document.querySelector(".person-actions"), null);
@@ -607,7 +607,7 @@ test("rotas preservam pessoa e mês em Voltar, Avançar, recarga e seleção no 
   await u.click(screen.getByRole("button", { name: "+ Nova pessoa" }));
   await u.type(screen.getByLabelText("Cadastrar pessoa"), "Bia");
   await u.click(screen.getByRole("button", { name: "Salvar" }));
-  await go(u, "Fatura atual");
+  await go(u, "Fatura por pessoa");
   fireEvent.change(screen.getByLabelText("Mês da fatura"), {
     target: { value: "2026-11" },
   });
@@ -667,7 +667,9 @@ test("rotas preservam pessoa e mês em Voltar, Avançar, recarga e seleção no 
       { name: /novembro de 2026/ },
     ),
   );
-  assert.ok(screen.getByRole("heading", { name: "Fatura atual", level: 1 }));
+  assert.ok(
+    screen.getByRole("heading", { name: "Fatura por pessoa", level: 1 }),
+  );
   assert.ok(screen.getByText("Novembro da Bia", { exact: true }));
   assert.equal(document.querySelector(".history"), null);
 });
@@ -700,7 +702,9 @@ test("trocar o contexto limpa a prévia do WhatsApp e as URLs diretas funcionam"
   cleanup();
   window.history.replaceState(null, "", "#/inexistente");
   render(createElement(App));
-  assert.ok(screen.getByRole("heading", { name: "Fatura atual", level: 1 }));
+  assert.ok(
+    screen.getByRole("heading", { name: "Fatura por pessoa", level: 1 }),
+  );
 });
 test("valor bancário formata dígitos, permite apagar e colar, salva e edita em centavos", async () => {
   const u = await start();
@@ -776,7 +780,7 @@ test("cartão zerado fica oculto por pessoa e reaparece ao lançar pela visão p
   await go(u, "Faturas por cartão");
   assert.ok(screen.getByText("Nenhuma compra neste cartão e mês."));
   await add(u, "Compra compartilhada", "12356");
-  await go(u, "Fatura atual");
+  await go(u, "Fatura por pessoa");
   assert.ok(screen.getByRole("button", { name: /Roxo/, expanded: true }));
   assert.ok(screen.getByText("Compra compartilhada"));
   assert.equal(screen.queryByText("Ainda não há compras registradas."), null);
@@ -786,7 +790,7 @@ test("cartão zerado fica oculto por pessoa e reaparece ao lançar pela visão p
   );
   await u.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
   assert.ok(screen.getByText("Nenhuma compra neste cartão e mês."));
-  await go(u, "Fatura atual");
+  await go(u, "Fatura por pessoa");
   assert.equal(document.querySelector(".card-panel"), null);
   assert.ok(screen.getByText("Ainda não há compras registradas."));
   assert.equal(screen.queryByRole("button", { name: "Expandir todos" }), null);
