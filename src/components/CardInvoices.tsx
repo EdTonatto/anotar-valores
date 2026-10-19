@@ -127,7 +127,7 @@ export function CardInvoices({
                 writable={writable}
                 personId={row?.person.id ?? personId}
                 reference={reference}
-                initialCardId={cardId}
+                fixedCardId={cardId}
                 purchase={row?.purchase}
                 onDone={() => setEditing(null)}
               />
