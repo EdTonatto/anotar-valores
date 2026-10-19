@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import type { AppData, Compra } from "../domain/models";
 import {
   amountInput,
+  maskAmountInput,
   PurchaseError,
   savePurchase,
   type PurchaseDraft,
@@ -28,7 +35,7 @@ export function PurchaseEditor({
   const [draft, setDraft] = useState<PurchaseDraft>(() => ({
     description: purchase?.description ?? "",
     cardId: purchase?.cardId ?? data.cards[0]?.id ?? "",
-    amount: purchase ? amountInput(purchase.amountCents) : "",
+    amount: purchase ? maskAmountInput(amountInput(purchase.amountCents)) : "",
     parcelled: !!purchase?.installment,
     current: purchase?.installment?.current.toString() ?? "",
     total: purchase?.installment?.total.toString() ?? "",
@@ -39,6 +46,17 @@ export function PurchaseEditor({
   } | null>(null);
   const [notice, setNotice] = useState("");
   const descriptionRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const amountCursor = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (amountCursor.current !== null) {
+      amountRef.current?.setSelectionRange(
+        amountCursor.current,
+        amountCursor.current,
+      );
+      amountCursor.current = null;
+    }
+  });
   const editingId = purchase?.id;
   useEffect(() => {
     if (editingId) {
@@ -151,9 +169,23 @@ export function PurchaseEditor({
           <label htmlFor="purchase-amount">Valor na fatura (R$)</label>
           <input
             id="purchase-amount"
-            inputMode="decimal"
+            ref={amountRef}
+            inputMode="numeric"
             value={draft.amount}
-            onChange={(e) => field("amount", e.target.value)}
+            onChange={(e) => {
+              const input = e.target;
+              const rightDigits = input.value
+                .slice(input.selectionStart ?? input.value.length)
+                .replace(/\D/g, "").length;
+              const formatted = maskAmountInput(input.value);
+              let cursor = formatted.length;
+              for (let remaining = rightDigits; cursor > 0 && remaining > 0;) {
+                cursor -= 1;
+                if (/\d/.test(formatted[cursor])) remaining -= 1;
+              }
+              amountCursor.current = cursor;
+              field("amount", formatted);
+            }}
             placeholder="0,00"
             {...aria("amount")}
           />

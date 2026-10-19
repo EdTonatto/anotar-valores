@@ -41,6 +41,14 @@ export function parseAmount(value: string): number {
 }
 export const amountInput = (cents: number) =>
   `${BigInt(cents) / 100n},${String(BigInt(cents) % 100n).padStart(2, "0")}`;
+/** Cada dígito digitado representa centavos, como em aplicativos de banco. */
+export function maskAmountInput(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  const padded = digits.replace(/^0+/, "").padStart(3, "0");
+  const whole = padded.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${whole},${padded.slice(-2)}`;
+}
 export function savePurchase(
   data: AppData,
   personId: string,

@@ -663,3 +663,43 @@ test("trocar o contexto limpa a prévia do WhatsApp e as URLs diretas funcionam"
   render(createElement(App));
   assert.ok(screen.getByRole("heading", { name: "Fatura atual", level: 1 }));
 });
+test("valor bancário formata dígitos, permite apagar e colar, salva e edita em centavos", async () => {
+  const u = await start();
+  const amount = screen.getByLabelText(
+    "Valor na fatura (R$)",
+  ) as HTMLInputElement;
+  assert.equal(amount.inputMode, "numeric");
+  await u.type(amount, "12356");
+  assert.equal(amount.value, "123,56");
+  await u.keyboard("{Backspace}");
+  assert.equal(amount.value, "12,35");
+  await u.clear(amount);
+  assert.equal(amount.value, "");
+  await u.type(amount, "1");
+  assert.equal(amount.value, "0,01");
+  await u.type(amount, "00");
+  assert.equal(amount.value, "1,00");
+  await u.clear(amount);
+  await u.paste("1.234,56");
+  assert.equal(amount.value, "1.234,56");
+  await u.type(screen.getByLabelText("Descrição"), "Máscara");
+  await u.click(screen.getByRole("button", { name: "Adicionar compra" }));
+  assert.equal(
+    JSON.parse(window.localStorage.getItem(STORAGE_KEY)!).purchases[0]
+      .amountCents,
+    123456,
+  );
+  await u.click(screen.getByRole("button", { name: "Editar compra Máscara" }));
+  const edited = screen.getByLabelText(
+    "Valor na fatura (R$)",
+  ) as HTMLInputElement;
+  assert.equal(edited.value, "1.234,56");
+  await u.clear(edited);
+  await u.type(edited, "12356");
+  await u.click(screen.getByRole("button", { name: "Salvar alterações" }));
+  assert.equal(
+    JSON.parse(window.localStorage.getItem(STORAGE_KEY)!).purchases[0]
+      .amountCents,
+    12356,
+  );
+});
