@@ -22,6 +22,7 @@ interface Props {
   reference: string;
   purchase?: Compra;
   initialCardId?: string;
+  fixedCardId?: string;
   onDone: () => void;
 }
 export function PurchaseEditor({
@@ -32,11 +33,17 @@ export function PurchaseEditor({
   reference,
   purchase,
   initialCardId,
+  fixedCardId,
   onDone,
 }: Props) {
   const [draft, setDraft] = useState<PurchaseDraft>(() => ({
     description: purchase?.description ?? "",
-    cardId: purchase?.cardId ?? initialCardId ?? data.cards[0]?.id ?? "",
+    cardId:
+      fixedCardId ??
+      purchase?.cardId ??
+      initialCardId ??
+      data.cards[0]?.id ??
+      "",
     amount: purchase ? maskAmountInput(amountInput(purchase.amountCents)) : "",
     parcelled: !!purchase?.installment,
     current: purchase?.installment?.current.toString() ?? "",
@@ -83,7 +90,15 @@ export function PurchaseEditor({
     event.preventDefault();
     try {
       if (
-        !update(savePurchase(data, personId, reference, draft, purchase?.id))
+        !update(
+          savePurchase(
+            data,
+            personId,
+            reference,
+            { ...draft, cardId: fixedCardId ?? draft.cardId },
+            purchase?.id,
+          ),
+        )
       ) {
         setError({
           message:
@@ -148,25 +163,27 @@ export function PurchaseEditor({
           />
           {feedback("description")}
         </div>
-        <div>
-          <label htmlFor="purchase-card">Cartão</label>
-          <select
-            id="purchase-card"
-            value={draft.cardId}
-            onChange={(e) => field("cardId", e.target.value)}
-            {...aria("cardId")}
-          >
-            <option value="" disabled>
-              Selecione
-            </option>
-            {data.cards.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+        {!fixedCardId && (
+          <div>
+            <label htmlFor="purchase-card">Cartão</label>
+            <select
+              id="purchase-card"
+              value={draft.cardId}
+              onChange={(e) => field("cardId", e.target.value)}
+              {...aria("cardId")}
+            >
+              <option value="" disabled>
+                Selecione
               </option>
-            ))}
-          </select>
-          {feedback("cardId")}
-        </div>
+              {data.cards.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {feedback("cardId")}
+          </div>
+        )}
         <div>
           <label htmlFor="purchase-amount">Valor na fatura (R$)</label>
           <input
