@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 export const pages = {
   fatura: "Fatura atual",
   pessoas: "Pessoas",
+  faturasCartao: "Faturas por cartão",
   cartoes: "Cartões",
   historico: "Histórico de faturas",
   whatsapp: "WhatsApp",

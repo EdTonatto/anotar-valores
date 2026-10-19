@@ -21,6 +21,7 @@ interface Props {
   personId: string;
   reference: string;
   purchase?: Compra;
+  initialCardId?: string;
   onDone: () => void;
 }
 export function PurchaseEditor({
@@ -30,11 +31,12 @@ export function PurchaseEditor({
   personId,
   reference,
   purchase,
+  initialCardId,
   onDone,
 }: Props) {
   const [draft, setDraft] = useState<PurchaseDraft>(() => ({
     description: purchase?.description ?? "",
-    cardId: purchase?.cardId ?? data.cards[0]?.id ?? "",
+    cardId: purchase?.cardId ?? initialCardId ?? data.cards[0]?.id ?? "",
     amount: purchase ? maskAmountInput(amountInput(purchase.amountCents)) : "",
     parcelled: !!purchase?.installment,
     current: purchase?.installment?.current.toString() ?? "",
