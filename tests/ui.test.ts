@@ -290,3 +290,70 @@ test("exclusão de cartão exige confirmação e bloqueia histórico de qualquer
     1,
   );
 });
+
+test("tema: sistema, escolha manual, recarga e armazenamento indisponível", async () => {
+  const { THEME_KEY } = await import("../src/components/ThemeSelector");
+  const listeners = new Set<() => void>();
+  const media = {
+    matches: true,
+    addEventListener: (_: string, listener: () => void) =>
+      listeners.add(listener),
+    removeEventListener: (_: string, listener: () => void) =>
+      listeners.delete(listener),
+  };
+  const original = window.matchMedia;
+  window.matchMedia = (() => media) as unknown as typeof window.matchMedia;
+  try {
+    const u = user();
+    render(createElement(App));
+    assert.equal(document.documentElement.dataset.theme, "dark");
+    const { act } = await import("@testing-library/react");
+    act(() => {
+      media.matches = false;
+      listeners.forEach((listener) => listener());
+    });
+    assert.equal(document.documentElement.dataset.theme, "light");
+    await u.selectOptions(screen.getByLabelText("Tema"), "dark");
+    assert.equal(document.documentElement.dataset.theme, "dark");
+    assert.equal(window.localStorage.getItem(THEME_KEY), "dark");
+    act(() => listeners.forEach((listener) => listener()));
+    assert.equal(document.documentElement.dataset.theme, "dark");
+    cleanup();
+    assert.equal(listeners.size, 0);
+    render(createElement(App));
+    assert.equal(
+      (screen.getByLabelText("Tema") as HTMLSelectElement).value,
+      "dark",
+    );
+    await u.selectOptions(screen.getByLabelText("Tema"), "system");
+    assert.equal(document.documentElement.dataset.theme, "light");
+    window.localStorage.setItem(THEME_KEY, "dark");
+    act(() =>
+      window.dispatchEvent(
+        new window.StorageEvent("storage", { key: THEME_KEY }),
+      ),
+    );
+    assert.equal(document.documentElement.dataset.theme, "dark");
+    cleanup();
+    const prototype = Object.getPrototypeOf(window.localStorage);
+    const getItem = prototype.getItem;
+    const setItem = prototype.setItem;
+    prototype.getItem = () => {
+      throw new Error("Blocked");
+    };
+    prototype.setItem = () => {
+      throw new Error("Blocked");
+    };
+    try {
+      render(createElement(App));
+      await u.selectOptions(screen.getByLabelText("Tema"), "dark");
+      assert.equal(document.documentElement.dataset.theme, "dark");
+    } finally {
+      prototype.getItem = getItem;
+      prototype.setItem = setItem;
+    }
+  } finally {
+    cleanup();
+    window.matchMedia = original;
+  }
+});

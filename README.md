@@ -60,3 +60,12 @@ A importação oferece mesclagem por ID ou substituição somente das compras da
 - `src/hooks`: estado React e persistência.
 - `src/services`: armazenamento local.
 - `tests`: testes unitários e de integração.
+
+### Aparência
+
+O seletor **Tema**, no cabeçalho, oferece **Sistema**, **Claro** e **Escuro**.
+Por padrão, a aparência acompanha o sistema, inclusive quando ele muda durante
+o uso. A escolha manual fica salva neste navegador e é sincronizada entre abas.
+O tema é aplicado antes da interface carregar para evitar um clarão inicial.
+Se o navegador bloquear o armazenamento, a troca continua funcionando na sessão.
+A preferência visual é independente dos dados das faturas e dos backups JSON.
