@@ -53,6 +53,9 @@ export function Cards({
     personId,
     reference,
   );
+  const visibleGroups = managing
+    ? groups
+    : groups.filter((group) => group.subtotalCents !== 0n);
   const editingPurchase =
     purchaseEdit?.personId === personId && purchaseEdit.reference === reference
       ? groups.flatMap((g) => g.purchases).find((p) => p.id === purchaseEdit.id)
@@ -214,7 +217,7 @@ export function Cards({
       <p className="card-notice" role="status">
         {notice}
       </p>
-      {!managing && groups.length > 0 && (
+      {!managing && visibleGroups.length > 0 && (
         <div className="card-toolbar">
           <button onClick={() => setCollapsed(new Set())}>
             Expandir todos
@@ -226,7 +229,7 @@ export function Cards({
           </button>
         </div>
       )}
-      {!groups.length && (
+      {managing && !groups.length && (
         <div className="empty">
           <div className="empty-icon" aria-hidden="true">
             ▤
@@ -238,8 +241,14 @@ export function Cards({
           </p>
         </div>
       )}
+      {!managing && hasContext && !visibleGroups.length && (
+        <div className="empty" role="status">
+          <h3>Ainda não há compras registradas.</h3>
+          <p>Adicione uma compra para esta pessoa e mês.</p>
+        </div>
+      )}
       <div className="card-list">
-        {groups.map(({ card, purchases, subtotalCents }) => {
+        {visibleGroups.map(({ card, purchases, subtotalCents }) => {
           const expanded = !collapsed.has(card.id);
           const usage = cardUsage(data, card.id);
           return (
