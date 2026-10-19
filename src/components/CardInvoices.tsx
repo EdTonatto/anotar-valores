@@ -103,23 +103,24 @@ export function CardInvoices({
           </div>
           {data.people.length ? (
             <>
-              <div className="page-context">
-                <label htmlFor="card-purchase-person">
-                  Pessoa que fez a compra
-                </label>
-                <select
-                  id="card-purchase-person"
-                  value={row?.person.id ?? personId}
-                  disabled={!!row}
-                  onChange={(e) => setPersonId(e.target.value)}
-                >
-                  {data.people.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!row && (
+                <div className="page-context">
+                  <label htmlFor="card-purchase-person">
+                    Pessoa que fez a compra
+                  </label>
+                  <select
+                    id="card-purchase-person"
+                    value={personId}
+                    onChange={(e) => setPersonId(e.target.value)}
+                  >
+                    {data.people.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <PurchaseEditor
                 key={`${cardId}/${reference}/${row?.purchase.id ?? personId}`}
                 data={data}
