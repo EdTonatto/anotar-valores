@@ -667,7 +667,9 @@ test("rotas preservam pessoa e mês em Voltar, Avançar, recarga e seleção no 
       { name: /novembro de 2026/ },
     ),
   );
-  assert.ok(screen.getByRole("heading", { name: "Fatura por pessoa", level: 1 }));
+  assert.ok(
+    screen.getByRole("heading", { name: "Fatura por pessoa", level: 1 }),
+  );
   assert.ok(screen.getByText("Novembro da Bia", { exact: true }));
   assert.equal(document.querySelector(".history"), null);
 });
@@ -700,7 +702,9 @@ test("trocar o contexto limpa a prévia do WhatsApp e as URLs diretas funcionam"
   cleanup();
   window.history.replaceState(null, "", "#/inexistente");
   render(createElement(App));
-  assert.ok(screen.getByRole("heading", { name: "Fatura por pessoa", level: 1 }));
+  assert.ok(
+    screen.getByRole("heading", { name: "Fatura por pessoa", level: 1 }),
+  );
 });
 test("valor bancário formata dígitos, permite apagar e colar, salva e edita em centavos", async () => {
   const u = await start();
