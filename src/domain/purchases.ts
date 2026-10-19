@@ -5,7 +5,7 @@ import {
   selectInvoice,
 } from "./peopleAndInvoices";
 export type PurchaseField =
-  "description" | "amount" | "cardId" | "current" | "total";
+  "description" | "amount" | "cardId" | "personId" | "current" | "total";
 export class PurchaseError extends Error {
   constructor(
     public field: PurchaseField,
@@ -55,6 +55,7 @@ export function savePurchase(
   reference: string,
   draft: PurchaseDraft,
   purchaseId?: string,
+  targetPersonId = personId,
 ): AppData {
   const description = normalizeName(draft.description);
   if (!description)
@@ -91,8 +92,10 @@ export function savePurchase(
     : undefined;
   if (purchaseId && !existing)
     throw new Error("Compra não encontrada nesta pessoa e competência.");
-  const next = ensureInvoice(data, personId, reference);
-  const invoice = selectInvoice(next, personId, reference).invoice!;
+  if (!data.people.some((p) => p.id === targetPersonId))
+    throw new PurchaseError("personId", "Selecione uma pessoa válida.");
+  const next = ensureInvoice(data, targetPersonId, reference);
+  const invoice = selectInvoice(next, targetPersonId, reference).invoice!;
   const now = new Date().toISOString();
   const purchase = {
     createdAt: existing ? existing.createdAt : now,
@@ -107,7 +110,7 @@ export function savePurchase(
   return {
     ...next,
     invoices: next.invoices.map((f) =>
-      f.id === invoice.id
+      f.id === invoice.id || f.id === existing?.invoiceId
         ? {
             ...f,
             updatedAt: now,

@@ -255,3 +255,27 @@ test("ambas as faturas ordenam pela criação, mantêm antigos e não alteram os
   data.purchases[0].createdAt = "invalid";
   assert.equal(isAppData(data), false);
 });
+
+test("trocar comprador reutiliza fatura de destino e rejeita pessoa inexistente sem mutar", () => {
+  let source = savePurchase(fixture(), "a", "2026-10", draft);
+  source = savePurchase(source, "b", "2026-10", draft);
+  const original = source.purchases[0];
+  const moved = savePurchase(
+    source,
+    "a",
+    "2026-10",
+    { ...draft, cardId: "d" },
+    original.id,
+    "b",
+  );
+  assert.equal(moved.invoices.length, 2);
+  assert.equal(moved.purchases.length, 2);
+  assert.equal(moved.purchases[0].invoiceId, source.purchases[1].invoiceId);
+  assert.equal(selectCardGroups(moved, "a", "2026-10")[0].subtotalCents, 0n);
+  assert.equal(selectCardGroups(moved, "b", "2026-10")[1].subtotalCents, 1n);
+  assert.throws(
+    () => savePurchase(source, "a", "2026-10", draft, original.id, "missing"),
+    PurchaseError,
+  );
+  assert.equal(source.purchases[0], original);
+});

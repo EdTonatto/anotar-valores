@@ -36,10 +36,12 @@ export function PurchaseEditor({
   fixedCardId,
   onDone,
 }: Props) {
+  const [buyerId, setBuyerId] = useState(personId);
+  const lockedCardId = purchase ? undefined : fixedCardId;
   const [draft, setDraft] = useState<PurchaseDraft>(() => ({
     description: purchase?.description ?? "",
     cardId:
-      fixedCardId ??
+      lockedCardId ??
       purchase?.cardId ??
       initialCardId ??
       data.cards[0]?.id ??
@@ -95,8 +97,9 @@ export function PurchaseEditor({
             data,
             personId,
             reference,
-            { ...draft, cardId: fixedCardId ?? draft.cardId },
+            { ...draft, cardId: lockedCardId ?? draft.cardId },
             purchase?.id,
+            purchase ? buyerId : personId,
           ),
         )
       ) {
@@ -163,7 +166,7 @@ export function PurchaseEditor({
           />
           {feedback("description")}
         </div>
-        {!fixedCardId && (
+        {!lockedCardId && (
           <div>
             <label htmlFor="purchase-card">Cartão</label>
             <select
@@ -182,6 +185,24 @@ export function PurchaseEditor({
               ))}
             </select>
             {feedback("cardId")}
+          </div>
+        )}
+        {purchase && (
+          <div>
+            <label htmlFor="purchase-personId">Pessoa que fez a compra</label>
+            <select
+              id="purchase-personId"
+              value={buyerId}
+              onChange={(e) => setBuyerId(e.target.value)}
+              {...aria("personId")}
+            >
+              {data.people.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.name}
+                </option>
+              ))}
+            </select>
+            {feedback("personId")}
           </div>
         )}
         <div>
