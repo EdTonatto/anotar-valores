@@ -1,7 +1,9 @@
-import { ThemeSelector } from "./ThemeSelector";
-import { Reports } from "./Reports";
-import { useState, type FormEvent } from "react";
-import { Cards } from "./Cards";
+import { NavigationMenu } from "./NavigationMenu";
+import { Reports, type ReportsHandle } from "./Reports";
+import { useRef, useState, type FormEvent } from "react";
+import { formatItemCount, selectInvoiceSummary } from "../domain/totals";
+import { formatCents } from "../domain/cards";
+import { Cards, type CardsHandle } from "./Cards";
 import { useAppData } from "../hooks/useAppData";
 import {
   currentReference,
@@ -13,6 +15,8 @@ import {
 } from "../domain/peopleAndInvoices";
 export function App() {
   const { data, update, error, writable } = useAppData();
+  const reports = useRef<ReportsHandle>(null);
+  const cards = useRef<CardsHandle>(null);
   const [personId, setPersonId] = useState(() => data.people[0]?.id ?? "");
   const [reference, setReference] = useState(currentReference);
   const [editor, setEditor] = useState<"new" | "edit" | null>(null);
@@ -21,6 +25,7 @@ export function App() {
   const [notice, setNotice] = useState("");
   const person = data.people.find((p) => p.id === personId);
   const { invoice, purchases } = selectInvoice(data, personId, reference);
+  const summary = selectInvoiceSummary(data, personId, reference);
   const history = data.invoices
     .filter((f) => f.personId === personId)
     .sort((a, b) => b.reference.localeCompare(a.reference));
@@ -64,6 +69,18 @@ export function App() {
         Pular para o conteúdo
       </a>
       <header>
+        <NavigationMenu
+          context={
+            person
+              ? `${person.name} · ${formatReference(reference)}`
+              : "Selecione uma pessoa e um mês"
+          }
+          hasPerson={!!person}
+          hasContext={!!person && isReference(reference)}
+          hasInvoice={!!invoice}
+          writable={writable}
+          onReport={(action) => reports.current?.run(action)}
+        />
         <a className="brand" href="./">
           <span className="logo">
             av<span>·</span>
@@ -71,7 +88,6 @@ export function App() {
           Anotar Valores
         </a>
         <div className="header-actions">
-          <ThemeSelector />
           <span className="badge">MVP · v1.0</span>
         </div>
       </header>
@@ -88,11 +104,6 @@ export function App() {
           Selecione uma pessoa e um mês para organizar as anotações e consultar
           o histórico.
         </p>
-        <nav className="quick-nav" aria-label="Atalhos da página">
-          <a href="#workspace-title">Pessoa e fatura</a>
-          <a href="#cards-title">Cartões e compras</a>
-          <a href="#reports-title">WhatsApp e JSON</a>
-        </nav>
         {error && (
           <div className="error" role="alert">
             {error}
@@ -102,7 +113,9 @@ export function App() {
           <div className="workspace-top">
             <div>
               <span className="eyebrow">SEU ESPAÇO</span>
-              <h2 id="workspace-title">Pessoas e faturas</h2>
+              <h2 id="workspace-title" tabIndex={-1}>
+                Pessoas e faturas
+              </h2>
             </div>
             <span className={writable ? "status" : "status blocked"}>
               {writable
@@ -220,6 +233,39 @@ export function App() {
           <p className="notice" role="status">
             {notice}
           </p>
+          {person && isReference(reference) && (
+            <div className="invoice-overview">
+              <div className="overview-total">
+                <div>
+                  Total da fatura
+                  <small>
+                    {formatItemCount(summary.purchaseCount)} ·{" "}
+                    {formatReference(reference)}
+                  </small>
+                </div>
+                <strong>{formatCents(summary.totalCents)}</strong>
+              </div>
+              <div className="overview-actions">
+                <button
+                  className="primary"
+                  disabled={!writable || data.cards.length === 0}
+                  onClick={() => cards.current?.newPurchase()}
+                >
+                  + Nova compra
+                </button>
+                <button
+                  onClick={() => {
+                    reports.current?.run("whatsapp");
+                    document
+                      .getElementById("reports-title")
+                      ?.scrollIntoView({ block: "start" });
+                  }}
+                >
+                  WhatsApp
+                </button>
+              </div>
+            </div>
+          )}
           <div className="invoice-heading">
             <div>
               <span className="eyebrow">FATURA SELECIONADA</span>
@@ -279,6 +325,7 @@ export function App() {
           )}
         </section>
         <Cards
+          ref={cards}
           data={data}
           update={update}
           writable={writable}
@@ -289,7 +336,9 @@ export function App() {
           <section className="history" aria-labelledby="history-title">
             <div>
               <span className="eyebrow">COMPETÊNCIAS SALVAS</span>
-              <h2 id="history-title">Histórico de {person.name}</h2>
+              <h2 id="history-title" tabIndex={-1}>
+                Histórico de {person.name}
+              </h2>
             </div>
             {history.length ? (
               <div className="history-list">
@@ -321,6 +370,7 @@ export function App() {
           </section>
         )}
         <Reports
+          ref={reports}
           data={data}
           update={update}
           writable={writable}

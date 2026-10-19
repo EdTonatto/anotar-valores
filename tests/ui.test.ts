@@ -22,6 +22,15 @@ Object.defineProperty(dom.window.HTMLElement.prototype, "scrollIntoView", {
   configurable: true,
   value: () => {},
 });
+// JSDOM does not implement dialog methods or the browser's native focus trap.
+dom.window.HTMLDialogElement.prototype.showModal = function () {
+  this.setAttribute("open", "");
+  this.querySelector<HTMLElement>("[autofocus]")?.focus();
+};
+dom.window.HTMLDialogElement.prototype.close = function () {
+  this.removeAttribute("open");
+  this.dispatchEvent(new dom.window.Event("close"));
+};
 const { render, screen, within, cleanup, fireEvent } =
   await import("@testing-library/react");
 const { default: userEvent } = await import("@testing-library/user-event");
@@ -326,6 +335,7 @@ test("tema: sistema, escolha manual, recarga e armazenamento indisponível", asy
       listeners.forEach((listener) => listener());
     });
     assert.equal(document.documentElement.dataset.theme, "light");
+    await u.click(screen.getByRole("button", { name: "Abrir menu" }));
     await u.selectOptions(screen.getByLabelText("Tema"), "dark");
     assert.equal(document.documentElement.dataset.theme, "dark");
     assert.equal(window.localStorage.getItem(THEME_KEY), "dark");
@@ -334,6 +344,7 @@ test("tema: sistema, escolha manual, recarga e armazenamento indisponível", asy
     cleanup();
     assert.equal(listeners.size, 0);
     render(createElement(App));
+    await u.click(screen.getByRole("button", { name: "Abrir menu" }));
     assert.equal(
       (screen.getByLabelText("Tema") as HTMLSelectElement).value,
       "dark",
@@ -359,6 +370,7 @@ test("tema: sistema, escolha manual, recarga e armazenamento indisponível", asy
     };
     try {
       render(createElement(App));
+      await u.click(screen.getByRole("button", { name: "Abrir menu" }));
       await u.selectOptions(screen.getByLabelText("Tema"), "dark");
       assert.equal(document.documentElement.dataset.theme, "dark");
     } finally {
@@ -369,4 +381,97 @@ test("tema: sistema, escolha manual, recarga e armazenamento indisponível", asy
     cleanup();
     window.matchMedia = original;
   }
+});
+
+test("menu: contexto, navegação, fechamento, restauração do foco e ações reais da fatura", async () => {
+  const u = await start();
+  await add(u, "Compra do menu", "15,00");
+  const snapshot = window.localStorage.getItem(STORAGE_KEY);
+  const trigger = screen.getByRole("button", { name: "Abrir menu" });
+  await u.click(trigger);
+  const dialog = screen.getByRole("dialog", { name: "Menu" });
+  assert.equal(trigger.getAttribute("aria-expanded"), "true");
+  assert.equal(document.body.style.overflow, "hidden");
+  assert.ok(within(dialog).getByText("Ana · outubro de 2026"));
+  await u.click(
+    within(dialog).getByRole("button", { name: "Pessoas e faturas" }),
+  );
+  assert.equal(document.activeElement, screen.getByLabelText("Pessoa"));
+  assert.equal(trigger.getAttribute("aria-expanded"), "false");
+  assert.equal(document.body.style.overflow, "");
+  await u.click(trigger);
+  await u.click(screen.getByRole("button", { name: "Fechar menu" }));
+  assert.equal(document.activeElement, trigger);
+  await u.click(trigger);
+  fireEvent(dialog, new dom.window.Event("cancel", { cancelable: true }));
+  assert.equal(document.activeElement, trigger);
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      writeText: async (value: string) => {
+        copied = value;
+      },
+    },
+  });
+  await u.click(trigger);
+  await u.click(
+    within(dialog).getByRole("button", { name: "Copiar para WhatsApp" }),
+  );
+  assert.ok(copied.includes("Compra do menu") && copied.includes("15,00"));
+  assert.ok(screen.getByText("Relatório para WhatsApp copiado."));
+  await u.click(trigger);
+  await u.click(
+    within(dialog).getByRole("button", { name: "Copiar JSON da fatura" }),
+  );
+  assert.equal(JSON.parse(copied).purchases.length, 1);
+  await u.click(trigger);
+  await u.click(within(dialog).getByRole("button", { name: "Importar JSON" }));
+  assert.equal(
+    document.activeElement,
+    screen.getByLabelText("Cole o JSON de uma fatura ou backup completo"),
+  );
+  assert.equal(window.localStorage.getItem(STORAGE_KEY), snapshot);
+});
+
+test("menu: opções sem contexto ficam desabilitadas e backup continua disponível", async () => {
+  const u = user();
+  render(createElement(App));
+  await u.click(screen.getByRole("button", { name: "Abrir menu" }));
+  const menu = within(screen.getByRole("dialog", { name: "Menu" }));
+  for (const name of [
+    "Histórico de faturas",
+    "Copiar para WhatsApp",
+    "Copiar JSON da fatura",
+    "Ver JSON da fatura",
+  ]) {
+    assert.equal(
+      (menu.getByRole("button", { name }) as HTMLButtonElement).disabled,
+      true,
+    );
+  }
+  assert.equal(
+    (
+      menu.getByRole("button", {
+        name: "Copiar backup completo",
+      }) as HTMLButtonElement
+    ).disabled,
+    false,
+  );
+});
+
+test("atalho de nova compra encerra edição sem modificar a compra original", async () => {
+  const u = await start();
+  await add(u, "Original", "25,00");
+  const snapshot = window.localStorage.getItem(STORAGE_KEY);
+  await u.click(screen.getByRole("button", { name: "Editar compra Original" }));
+  await u.clear(screen.getByLabelText("Descrição"));
+  await u.type(screen.getByLabelText("Descrição"), "Rascunho não salvo");
+  await u.click(screen.getByRole("button", { name: "+ Nova compra" }));
+  assert.equal(document.activeElement, screen.getByLabelText("Descrição"));
+  assert.equal(
+    (screen.getByLabelText("Descrição") as HTMLInputElement).value,
+    "",
+  );
+  assert.equal(window.localStorage.getItem(STORAGE_KEY), snapshot);
+  assert.ok(screen.getByRole("button", { name: "Adicionar compra" }));
 });

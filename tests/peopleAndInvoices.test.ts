@@ -19,7 +19,9 @@ test("cadastro normaliza espaços e rejeita nomes equivalentes sem mutação", (
   assert.equal(result.data.people.length, 1);
 });
 test("renomear conserva IDs, faturas e compras; conflito rejeitado", () => {
-  let { data, personId } = savePerson(createEmptyData(), "Ana");
+  const result = savePerson(createEmptyData(), "Ana");
+  const personId = result.personId;
+  let data = result.data;
   data = savePerson(data, "Bia").data;
   data = ensureInvoice(data, personId, "2026-10");
   data.cards = [{ id: "c", name: "Cartão" }];
