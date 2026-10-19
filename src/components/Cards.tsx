@@ -1,4 +1,4 @@
-import { selectInvoiceSummary } from "../domain/totals";
+import { formatItemCount, selectInvoiceSummary } from "../domain/totals";
 import { PurchaseEditor } from "./PurchaseEditor";
 import { deletePurchase } from "../domain/purchases";
 import { useState, type FormEvent } from "react";
@@ -213,6 +213,11 @@ export function Cards({ data, update, writable, personId, reference }: Props) {
                 >
                   <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
                   <strong>{card.name}</strong>
+                  {hasContext && (
+                    <span className="card-item-count">
+                      {formatItemCount(purchases.length)}
+                    </span>
+                  )}
                   {!expanded && hasContext && (
                     <span className="card-amount">
                       {formatCents(subtotalCents)}

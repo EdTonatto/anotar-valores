@@ -70,7 +70,7 @@ test("WhatsApp inclui pessoa, competência, parcelas e totais; omite cartões va
   assert.equal(text.split("*Roxo*").length, 2);
   assert.ok(text.includes("(2/5)"));
   assert.ok(text.includes("R$ 134,90"));
-  assert.ok(text.includes("*Subtotal: R$ 254,90*"));
+  assert.ok(text.includes("2 itens · *Subtotal: R$ 254,90*"));
   assert.ok(text.includes("*Total geral: R$ 254,90*"));
   assert.ok(!text.includes("Vazio"));
   assert.ok(!text.includes("Novembro"));
@@ -244,4 +244,22 @@ test("falha de gravação mantém snapshot; plano não muta dados e round-trip p
   assert.deepEqual(loadData(storage).data, plan.data);
   assert.ok(isAppData(plan.data));
   assert.equal(base.purchases.length, 4);
+});
+
+test("WhatsApp conta cada lançamento por cartão e por fatura, com singular", () => {
+  const data = fixture();
+  assert.ok(
+    whatsappReport(data, "p", "2026-11").includes(
+      "1 item · *Subtotal: R$ 1,23*",
+    ),
+  );
+  assert.ok(
+    whatsappReport(data, "q", "2026-10").includes(
+      "1 item · *Subtotal: R$ 4,56*",
+    ),
+  );
+  data.purchases[1].cardId = "v";
+  const text = whatsappReport(data, "p", "2026-10");
+  assert.equal(text.match(/1 item ·/g)?.length, 2);
+  assert.ok(!text.includes("2 itens"));
 });

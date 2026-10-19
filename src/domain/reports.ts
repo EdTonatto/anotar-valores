@@ -4,7 +4,7 @@ import {
   normalizeName,
   formatReference,
 } from "./peopleAndInvoices";
-import { selectInvoiceSummary, formatCents } from "./totals";
+import { selectInvoiceSummary, formatCents, formatItemCount } from "./totals";
 const nameKey = (name: string) =>
   normalizeName(name).toLocaleLowerCase("pt-BR");
 /** Projeta somente campos conhecidos; não transporta atributos extras. */
@@ -99,7 +99,9 @@ export function whatsappReport(
       lines.push(
         `• ${messageText(p.description)}${p.installment ? ` (${p.installment.current}/${p.installment.total})` : " (à vista)"} — ${formatCents(BigInt(p.amountCents))}`,
       );
-    lines.push(`*Subtotal: ${formatCents(group.subtotalCents)}*`);
+    lines.push(
+      `${formatItemCount(group.purchases.length)} · *Subtotal: ${formatCents(group.subtotalCents)}*`,
+    );
   }
   if (!summary.purchaseCount) lines.push("", "Nenhuma compra nesta fatura.");
   lines.push("", `*Total geral: ${formatCents(summary.totalCents)}*`);

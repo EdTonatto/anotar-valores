@@ -35,3 +35,7 @@ export function formatCents(cents: bigint): string {
   const reais = new Intl.NumberFormat("pt-BR").format(cents / 100n);
   return `R$ ${reais},${String(cents % 100n).padStart(2, "0")}`;
 }
+
+export function formatItemCount(count: number): string {
+  return `${count} ${count === 1 ? "item" : "itens"}`;
+}

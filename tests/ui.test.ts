@@ -130,6 +130,10 @@ test("fluxo completo da interface: cadastro, parcelas, renomeação, recarga, Wh
 test("editar e excluir com cancelamento preservam contexto e totais; filtros isolam meses", async () => {
   const u = await start();
   await add(u, "Teste", "10,00");
+  assert.equal(
+    document.querySelector(".card-item-count")?.textContent,
+    "1 item",
+  );
   const snapshot = window.localStorage.getItem(STORAGE_KEY);
   await u.click(screen.getByRole("button", { name: "Editar compra Teste" }));
   await u.clear(screen.getByLabelText("Descrição"));
@@ -149,6 +153,10 @@ test("editar e excluir com cancelamento preservam contexto e totais; filtros iso
     null,
   );
   assert.ok(screen.getAllByText("R$ 0,00").length >= 1);
+  assert.equal(
+    document.querySelector(".card-item-count")?.textContent,
+    "0 itens",
+  );
   fireEvent.change(screen.getByLabelText("Mês da fatura"), {
     target: { value: "2026-10" },
   });
@@ -169,9 +177,14 @@ test("cartões respondem ao teclado e subtotal muda de posição sem mutar dados
   const toggle = screen.getByRole("button", { name: /Roxo/, expanded: true });
   const panel = toggle.closest("article")!;
   assert.ok(within(panel).getByText("Subtotal"));
+  assert.equal(panel.querySelector(".card-item-count")?.textContent, "1 item");
   toggle.focus();
   await u.keyboard("{Enter}");
   assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(
+    panel.querySelector(".card-header .card-item-count")?.textContent,
+    "1 item",
+  );
   assert.equal(
     panel.querySelector(".card-subtotal")!.closest("[hidden]") !== null,
     true,
