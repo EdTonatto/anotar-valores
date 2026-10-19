@@ -1,18 +1,35 @@
 import { formatItemCount, selectInvoiceSummary } from "../domain/totals";
 import { PurchaseEditor } from "./PurchaseEditor";
 import { deletePurchase } from "../domain/purchases";
-import { useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useImperativeHandle,
+  useState,
+  type FormEvent,
+  type Ref,
+} from "react";
 import type { AppData } from "../domain/models";
 import { cardUsage, deleteCard, formatCents, saveCard } from "../domain/cards";
 import { formatReference, isReference } from "../domain/peopleAndInvoices";
+export interface CardsHandle {
+  newPurchase: () => void;
+}
 interface Props {
+  ref?: Ref<CardsHandle>;
   data: AppData;
   update: (next: AppData) => boolean;
   writable: boolean;
   personId: string;
   reference: string;
 }
-export function Cards({ data, update, writable, personId, reference }: Props) {
+export function Cards({
+  ref,
+  data,
+  update,
+  writable,
+  personId,
+  reference,
+}: Props) {
   const [purchaseEdit, setPurchaseEdit] = useState<{
     id: string;
     personId: string;
@@ -25,6 +42,7 @@ export function Cards({ data, update, writable, personId, reference }: Props) {
   const [notice, setNotice] = useState("");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [focusRequest, setFocusRequest] = useState(0);
   const person = data.people.find((p) => p.id === personId);
   const hasContext = !!person && isReference(reference);
   const { groups, totalCents, purchaseCount } = selectInvoiceSummary(
@@ -36,6 +54,18 @@ export function Cards({ data, update, writable, personId, reference }: Props) {
     purchaseEdit?.personId === personId && purchaseEdit.reference === reference
       ? groups.flatMap((g) => g.purchases).find((p) => p.id === purchaseEdit.id)
       : undefined;
+  useEffect(() => {
+    if (!focusRequest) return;
+    const field = document.getElementById("purchase-description");
+    field?.focus({ preventScroll: true });
+    field?.scrollIntoView({ block: "center" });
+  }, [focusRequest]);
+  useImperativeHandle(ref, () => ({
+    newPurchase() {
+      setPurchaseEdit(null);
+      setFocusRequest((request) => request + 1);
+    },
+  }));
   function removePurchase(id: string) {
     try {
       if (update(deletePurchase(data, personId, reference, id))) {
@@ -134,7 +164,9 @@ export function Cards({ data, update, writable, personId, reference }: Props) {
       <div className="cards-heading">
         <div>
           <span className="eyebrow">CADASTRO COMPARTILHADO</span>
-          <h2 id="cards-title">Seus cartões</h2>
+          <h2 id="cards-title" tabIndex={-1}>
+            Seus cartões
+          </h2>
         </div>
         <button
           className="primary"

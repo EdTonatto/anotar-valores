@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useImperativeHandle, useRef, useState, type Ref } from "react";
 import type { AppData } from "../domain/models";
 import {
   canonicalData,
@@ -11,7 +11,13 @@ import {
 } from "../domain/reports";
 import { formatReference, isReference } from "../domain/peopleAndInvoices";
 import { formatCents, selectInvoiceSummary } from "../domain/totals";
+export type ReportAction =
+  "whatsapp" | "copy-invoice" | "view-invoice" | "backup";
+export interface ReportsHandle {
+  run: (action: ReportAction) => void;
+}
 interface Props {
+  ref?: Ref<ReportsHandle>;
   data: AppData;
   update: (data: AppData) => boolean;
   writable: boolean;
@@ -20,6 +26,7 @@ interface Props {
   onImported: (personId: string, reference: string) => void;
 }
 export function Reports({
+  ref,
   data,
   update,
   writable,
@@ -74,6 +81,28 @@ export function Reports({
       setError(e instanceof Error ? e.message : "Não foi possível exportar.");
     }
   }
+  useImperativeHandle(ref, () => ({
+    run(action) {
+      if (action === "whatsapp" && hasContext) {
+        void present(
+          "Relatório para WhatsApp",
+          whatsappReport(data, personId, reference),
+          true,
+        );
+      } else if (
+        (action === "copy-invoice" || action === "view-invoice") &&
+        hasInvoice
+      ) {
+        showInvoice(action === "copy-invoice");
+      } else if (action === "backup") {
+        void present(
+          "Backup completo JSON",
+          JSON.stringify(canonicalData(data), null, 2),
+          true,
+        );
+      }
+    },
+  }));
   function review() {
     setPreview(null);
     setConfirmed(false);
@@ -120,7 +149,9 @@ export function Reports({
   return (
     <section className="reports-section" aria-labelledby="reports-title">
       <span className="eyebrow">COMPARTILHAR E RESTAURAR</span>
-      <h2 id="reports-title">WhatsApp e JSON</h2>
+      <h2 id="reports-title" tabIndex={-1}>
+        WhatsApp e JSON
+      </h2>
       <p className="cards-description">
         Exporte a fatura selecionada ou guarde um backup completo. Nada é
         enviado automaticamente.
