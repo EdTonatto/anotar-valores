@@ -180,10 +180,9 @@ test("editar e excluir com cancelamento preservam contexto e totais; filtros iso
     null,
   );
   assert.ok(screen.getAllByText("R$ 0,00").length >= 1);
-  assert.equal(
-    document.querySelector(".card-item-count")?.textContent,
-    "0 itens",
-  );
+  assert.equal(document.querySelector(".card-panel"), null);
+  assert.ok(screen.getByText("Ainda não há compras registradas."));
+  assert.equal(screen.queryByRole("button", { name: "Expandir todos" }), null);
   fireEvent.change(screen.getByLabelText("Mês da fatura"), {
     target: { value: "2026-10" },
   });
@@ -766,4 +765,29 @@ test("lançar por cartão atualiza faturas individuais e mantém compras únicas
   assert.ok(screen.getByText("Compra Bruno"));
   const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY)!);
   assert.equal(stored.purchases.length, 2);
+});
+
+test("cartão zerado fica oculto por pessoa e reaparece ao lançar pela visão por cartão", async () => {
+  const u = await start();
+  assert.ok(screen.getByText("Ainda não há compras registradas."));
+  assert.equal(document.querySelector(".card-panel"), null);
+  await go(u, "Cartões");
+  assert.ok(screen.getByRole("button", { name: "Renomear cartão Roxo" }));
+  await go(u, "Faturas por cartão");
+  assert.ok(screen.getByText("Nenhuma compra neste cartão e mês."));
+  await add(u, "Compra compartilhada", "12356");
+  await go(u, "Fatura atual");
+  assert.ok(screen.getByRole("button", { name: /Roxo/, expanded: true }));
+  assert.ok(screen.getByText("Compra compartilhada"));
+  assert.equal(screen.queryByText("Ainda não há compras registradas."), null);
+  await go(u, "Faturas por cartão");
+  await u.click(
+    screen.getByRole("button", { name: "Excluir compra Compra compartilhada" }),
+  );
+  await u.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+  assert.ok(screen.getByText("Nenhuma compra neste cartão e mês."));
+  await go(u, "Fatura atual");
+  assert.equal(document.querySelector(".card-panel"), null);
+  assert.ok(screen.getByText("Ainda não há compras registradas."));
+  assert.equal(screen.queryByRole("button", { name: "Expandir todos" }), null);
 });
