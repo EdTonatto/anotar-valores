@@ -1,3 +1,4 @@
+import { ThemeSelector } from "./ThemeSelector";
 import { Reports } from "./Reports";
 import { useState, type FormEvent } from "react";
 import { Cards } from "./Cards";
@@ -69,7 +70,10 @@ export function App() {
           </span>
           Anotar Valores
         </a>
-        <span className="badge">MVP · v1.0</span>
+        <div className="header-actions">
+          <ThemeSelector />
+          <span className="badge">MVP · v1.0</span>
+        </div>
       </header>
       <main id="main-content" tabIndex={-1}>
         <div className="eyebrow">

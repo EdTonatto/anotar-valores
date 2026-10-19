@@ -7,6 +7,24 @@
       name="description"
       content="Organize compras compartilhadas por pessoa, cartão e fatura."
     />
+    <script>
+      // Apply before first paint, including when browser storage is unavailable.
+      try {
+        const preference = localStorage.getItem("anotar-valores:theme");
+        document.documentElement.dataset.theme =
+          preference === "dark" || preference === "light"
+            ? preference
+            : matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+      } catch {
+        document.documentElement.dataset.theme = matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches
+          ? "dark"
+          : "light";
+      }
+    </script>
     <title>Anotar Valores</title>
   </head>
   <body>
