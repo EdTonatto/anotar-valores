@@ -22,6 +22,8 @@ export interface Compra {
   description: string;
   createdAt?: string;
   updatedAt?: string;
+  /** Compra reembolsada/estornada: permanece no histórico, mas não compõe os totais. */
+  reimbursed?: boolean;
   /** Valor cobrado nesta fatura, nunca o total da compra parcelada. */
   amountCents: number;
   installment: { current: number; total: number } | null;
@@ -108,6 +110,8 @@ export function isAppData(value: unknown): value is AppData {
       !integer(v.amountCents) ||
       v.amountCents <= 0
     )
+      return false;
+    if (v.reimbursed !== undefined && typeof v.reimbursed !== "boolean")
       return false;
     const i = v.installment;
     if (v.installmentSeriesId !== undefined) {

@@ -1,7 +1,7 @@
 import { formatTimestamp } from "../domain/totals";
 import { formatItemCount, selectInvoiceSummary } from "../domain/totals";
 import { PurchaseEditor } from "./PurchaseEditor";
-import { deletePurchase } from "../domain/purchases";
+import { deletePurchase, setPurchaseReimbursed } from "../domain/purchases";
 import {
   useEffect,
   useImperativeHandle,
@@ -340,9 +340,17 @@ export function Cards({
                       {purchases.length ? (
                         <ul className="purchases">
                           {purchases.map((p) => (
-                            <li key={p.id} className="purchase-row">
+                            <li
+                              key={p.id}
+                              className={`purchase-row${p.reimbursed ? " purchase-reimbursed" : ""}`}
+                            >
                               <div>
-                                <strong>{p.description}</strong>
+                                <strong>
+                                  {p.description}
+                                  {p.reimbursed
+                                    ? " (reembolsada/estornada)"
+                                    : ""}
+                                </strong>
                                 <small>
                                   Registrada em: {formatTimestamp(p.createdAt)}
                                 </small>
@@ -354,6 +362,22 @@ export function Cards({
                               </div>
                               <span>{formatCents(BigInt(p.amountCents))}</span>
                               <div className="purchase-item-actions">
+                                <button
+                                  disabled={!writable}
+                                  onClick={() =>
+                                    update(
+                                      setPurchaseReimbursed(
+                                        data,
+                                        p.id,
+                                        !p.reimbursed,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  {p.reimbursed
+                                    ? "Desmarcar estorno"
+                                    : "Marcar estorno"}
+                                </button>
                                 <button
                                   disabled={!writable}
                                   aria-label={`Editar compra ${p.description}`}

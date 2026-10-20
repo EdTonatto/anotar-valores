@@ -78,6 +78,17 @@ test("WhatsApp inclui pessoa, competência, parcelas e totais; omite cartões va
   assert.equal(whatsappReport(data, "p", "2026-10"), text);
   assert.throws(() => whatsappReport(data, "missing", "2026-10"));
 });
+
+test("WhatsApp risca compras reembolsadas e exclui seu valor do subtotal", () => {
+  const data = fixture();
+  data.purchases[0].reimbursed = true;
+  const text = whatsappReport(data, "p", "2026-10");
+  assert.ok(
+    text.includes("~• Compra um (2/5) — R$ 134,90 — reembolsada/estornada~"),
+  );
+  assert.ok(text.includes("2 itens · *Subtotal: R$ 120,00*"));
+  assert.ok(text.includes("*Total geral: R$ 120,00*"));
+});
 test("WhatsApp vazio mantém total zero e neutraliza marcadores em campos do usuário", () => {
   const data = fixture();
   data.people[0].name = "*Ana*";

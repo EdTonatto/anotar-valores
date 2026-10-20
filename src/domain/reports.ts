@@ -30,6 +30,7 @@ export function canonicalData(data: AppData): AppData {
       description: normalizeName(p.description),
       ...(p.createdAt ? { createdAt: p.createdAt } : {}),
       ...(p.updatedAt ? { updatedAt: p.updatedAt } : {}),
+      ...(p.reimbursed ? { reimbursed: true } : {}),
       amountCents: p.amountCents,
       installment: p.installment
         ? { current: p.installment.current, total: p.installment.total }
@@ -102,10 +103,10 @@ export function whatsappReport(
   for (const group of summary.groups) {
     if (!group.purchases.length) continue;
     lines.push("", `*${messageText(group.card.name)}*`);
-    for (const p of group.purchases)
-      lines.push(
-        `• ${messageText(p.description)}${p.installment ? ` (${p.installment.current}/${p.installment.total})` : " (à vista)"} — ${formatCents(BigInt(p.amountCents))}`,
-      );
+    for (const p of group.purchases) {
+      const line = `• ${messageText(p.description)}${p.installment ? ` (${p.installment.current}/${p.installment.total})` : " (à vista)"} — ${formatCents(BigInt(p.amountCents))}`;
+      lines.push(p.reimbursed ? `~${line} — reembolsada/estornada~` : line);
+    }
     lines.push(
       `${formatItemCount(group.purchases.length)} · *Subtotal: ${formatCents(group.subtotalCents)}*`,
     );
@@ -191,7 +192,8 @@ export function planImport(
         existing.amountCents === item.amountCents &&
         existing.installment?.current === item.installment?.current &&
         existing.installment?.total === item.installment?.total &&
-        existing.installmentSeriesId === item.installmentSeriesId
+        existing.installmentSeriesId === item.installmentSeriesId &&
+        existing.reimbursed === item.reimbursed
       ))
         throw new Error(
           "Conflito de ID de compra. Para atualizar compras das faturas importadas, escolha substituir. IDs de outras faturas precisam ser corrigidos.",

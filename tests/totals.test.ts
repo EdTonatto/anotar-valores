@@ -5,6 +5,7 @@ import { selectInvoiceSummary, formatCents } from "../src/domain/totals";
 import {
   savePurchase,
   deletePurchase,
+  setPurchaseReimbursed,
   parseAmount,
   type PurchaseDraft,
 } from "../src/domain/purchases";
@@ -40,6 +41,17 @@ test("exemplo de aceite: 134,90 + 120,00 = 254,90 sem dupla contagem", () => {
   assert.equal(summary.purchaseCount, 2);
   assert.equal(summary.totalCents, 25490n);
   assert.equal(formatCents(summary.totalCents), "R$ 254,90");
+});
+
+test("compra reembolsada permanece visível, mas não entra nos totais", () => {
+  let data = savePurchase(fixture(), "p", "2026-10", draft("a", "10,00"));
+  data = savePurchase(data, "p", "2026-10", draft("a", "20,00"));
+  data = setPurchaseReimbursed(data, data.purchases[0].id, true);
+  const summary = selectInvoiceSummary(data, "p", "2026-10");
+  assert.equal(summary.purchaseCount, 2);
+  assert.equal(summary.groups[0].subtotalCents, 2000n);
+  assert.equal(summary.totalCents, 2000n);
+  assert.equal(data.purchases.find((p) => p.reimbursed)?.reimbursed, true);
 });
 test("precisão: dez e vinte centavos resultam em trinta, sem arredondar entradas", () => {
   let data = savePurchase(fixture(), "p", "2026-10", draft("a", "0,10"));

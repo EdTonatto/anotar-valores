@@ -280,3 +280,28 @@ export function deletePurchase(
     ),
   };
 }
+
+export function setPurchaseReimbursed(
+  data: AppData,
+  purchaseId: string,
+  reimbursed: boolean,
+): AppData {
+  const purchase = data.purchases.find((p) => p.id === purchaseId);
+  if (!purchase) throw new Error("Compra não encontrada.");
+  const now = new Date().toISOString();
+  return {
+    ...data,
+    purchases: data.purchases.map((p) =>
+      p.id === purchaseId ? { ...p, reimbursed, updatedAt: now } : p,
+    ),
+    invoices: data.invoices.map((invoice) =>
+      invoice.id === purchase.invoiceId
+        ? {
+            ...invoice,
+            updatedAt: now,
+            cardUpdatedAt: { ...invoice.cardUpdatedAt, [purchase.cardId]: now },
+          }
+        : invoice,
+    ),
+  };
+}

@@ -1369,3 +1369,11 @@ header > .brand {
     margin-left: auto;
   }
 }
+.purchase-reimbursed {
+  opacity: 0.68;
+}
+
+.purchase-reimbursed strong,
+.purchase-reimbursed > span {
+  text-decoration: line-through;
+}
