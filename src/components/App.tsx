@@ -1,5 +1,6 @@
 import { formatTimestamp } from "../domain/totals";
 import { CardInvoices } from "./CardInvoices";
+import { Dashboard } from "./Dashboard";
 import { NavigationMenu } from "./NavigationMenu";
 import { Reports } from "./Reports";
 import { ThemeSelector, useThemePreference } from "./ThemeSelector";
@@ -210,6 +211,7 @@ export function App() {
         <p className="page-notice" role="status">
           {notice}
         </p>
+        {page === "dashboard" && <Dashboard data={data} />}
         {page === "pessoas" && (
           <section className="page-panel" aria-label="Cadastro de pessoas">
             <p>
