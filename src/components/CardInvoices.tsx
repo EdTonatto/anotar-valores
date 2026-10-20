@@ -7,7 +7,7 @@ import {
   selectCardInvoiceSummary,
 } from "../domain/totals";
 import { formatReference, isReference } from "../domain/peopleAndInvoices";
-import { deletePurchase } from "../domain/purchases";
+import { deletePurchase, setPurchaseReimbursed } from "../domain/purchases";
 import { PurchaseEditor } from "./PurchaseEditor";
 
 interface Props {
@@ -163,9 +163,9 @@ export function CardInvoices({
           )}
           <ul className="purchases">
             {summary.purchases.map(({ purchase: p, person }) => (
-              <li className="purchase-row" key={p.id}>
+              <li className={`purchase-row${p.reimbursed ? " purchase-reimbursed" : ""}`} key={p.id}>
                 <div>
-                  <strong>{p.description}</strong>
+                  <strong>{p.description}{p.reimbursed ? " (reembolsada/estornada)" : ""}</strong>
                   <small>Registrada em: {formatTimestamp(p.createdAt)}</small>
                   <small>
                     {person.name} ·{" "}
@@ -176,6 +176,12 @@ export function CardInvoices({
                 </div>
                 <span>{formatCents(BigInt(p.amountCents))}</span>
                 <div className="purchase-item-actions">
+                  <button
+                    disabled={!writable}
+                    onClick={() => update(setPurchaseReimbursed(data, p.id, !p.reimbursed))}
+                  >
+                    {p.reimbursed ? "Desmarcar estorno" : "Marcar estorno"}
+                  </button>
                   <button
                     disabled={!writable}
                     aria-label={`Editar compra ${p.description}`}
