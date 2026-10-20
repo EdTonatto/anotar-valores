@@ -11,6 +11,7 @@ import {
   maskAmountInput,
   PurchaseError,
   savePurchase,
+  type SeriesScope,
   type PurchaseDraft,
   type PurchaseField,
 } from "../domain/purchases";
@@ -36,6 +37,7 @@ export function PurchaseEditor({
   fixedCardId,
   onDone,
 }: Props) {
+  const [scope, setScope] = useState<SeriesScope>("single");
   const [buyerId, setBuyerId] = useState(personId);
   const lockedCardId = purchase ? undefined : fixedCardId;
   const [draft, setDraft] = useState<PurchaseDraft>(() => ({
@@ -100,6 +102,7 @@ export function PurchaseEditor({
             { ...draft, cardId: lockedCardId ?? draft.cardId },
             purchase?.id,
             purchase ? buyerId : personId,
+            scope,
           ),
         )
       ) {
@@ -232,6 +235,23 @@ export function PurchaseEditor({
           {feedback("amount")}
         </div>
       </div>
+      {purchase?.installmentSeriesId && (
+        <label>
+          Aplicar alterações a
+          <select
+            value={scope}
+            onChange={(e) => setScope(e.target.value as SeriesScope)}
+          >
+            <option value="single">Somente esta parcela</option>
+            <option value="following">Esta e as próximas</option>
+            <option value="all">Toda a série</option>
+          </select>
+          <span>
+            Para alterar o total de parcelas, escolha esta e as próximas ou toda
+            a série.
+          </span>
+        </label>
+      )}
       <fieldset className="installment-mode">
         <legend>Forma da compra</legend>
         <label>
@@ -280,8 +300,8 @@ export function PurchaseEditor({
             {feedback("total")}
           </div>
           <p>
-            Informe somente o valor cobrado neste mês. As próximas parcelas não
-            serão criadas automaticamente.
+            Informe o valor mensal de cada parcela. Novas compras geram
+            automaticamente as parcelas restantes nas competências seguintes.
           </p>
         </div>
       )}

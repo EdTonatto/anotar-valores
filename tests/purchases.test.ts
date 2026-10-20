@@ -70,7 +70,7 @@ test("cadastro cria fatura e compra atomicamente, normaliza descrição e permit
   assert.equal(two.purchases[0].amountCents, 1);
   assert.equal(two.purchases[0].installment, null);
 });
-test("parcelamento usa valor mensal e não cria futuras; intervalos inválidos não entram", () => {
+test("parcelamento usa valor mensal e cria futuras; intervalos inválidos não entram", () => {
   const data = savePurchase(fixture(), "a", "2026-10", {
     ...draft,
     amount: "100,00",
@@ -80,7 +80,7 @@ test("parcelamento usa valor mensal e não cria futuras; intervalos inválidos n
   });
   assert.deepEqual(data.purchases[0].installment, { current: 2, total: 5 });
   assert.equal(selectCardGroups(data, "a", "2026-10")[0].subtotalCents, 10000n);
-  assert.equal(data.invoices.length, 1);
+  assert.equal(data.invoices.length, 4);
   for (const [current, total] of [
     ["7", "3"],
     ["0", "3"],
@@ -115,7 +115,7 @@ test("edição mantém ID e competência, permite trocar cartão e remover parce
     { ...draft, description: "Corrigida", cardId: "d", amount: "12,34" },
     id,
   );
-  assert.equal(edited.purchases.length, 1);
+  assert.equal(edited.purchases.length, 3);
   assert.equal(edited.purchases[0].id, id);
   assert.equal(edited.purchases[0].invoiceId, source.purchases[0].invoiceId);
   assert.equal(edited.purchases[0].installment, null);

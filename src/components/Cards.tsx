@@ -73,9 +73,12 @@ export function Cards({
       setFocusRequest((request) => request + 1);
     },
   }));
-  function removePurchase(id: string) {
+  function removePurchase(
+    id: string,
+    scope: "single" | "following" = "single",
+  ) {
     try {
-      if (update(deletePurchase(data, personId, reference, id))) {
+      if (update(deletePurchase(data, personId, reference, id, scope))) {
         setPurchaseDelete(null);
         if (purchaseEdit?.id === id) setPurchaseEdit(null);
         setNotice("Compra excluída. Os subtotais foram atualizados.");
@@ -391,6 +394,17 @@ export function Cards({
                                   >
                                     Confirmar exclusão
                                   </button>
+                                  {p.installmentSeriesId && (
+                                    <button
+                                      className="danger"
+                                      disabled={!writable}
+                                      onClick={() =>
+                                        removePurchase(p.id, "following")
+                                      }
+                                    >
+                                      Excluir esta e as próximas
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => setPurchaseDelete(null)}
                                   >

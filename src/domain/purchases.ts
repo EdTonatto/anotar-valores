@@ -1,4 +1,4 @@
-import { createId, type AppData } from "./models";
+import { createId, type Compra, type AppData } from "./models";
 import {
   ensureInvoice,
   normalizeName,
@@ -49,6 +49,18 @@ export function maskAmountInput(value: string): string {
   const whole = padded.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return `${whole},${padded.slice(-2)}`;
 }
+export type SeriesScope = "single" | "following" | "all";
+export function advanceReference(reference: string, months: number): string {
+  const [year, month] = reference.split("-").map(Number);
+  const index = year * 12 + month - 1 + months;
+  const y = Math.floor(index / 12);
+  if (!Number.isSafeInteger(index) || y < 1 || y > 9999)
+    throw new PurchaseError(
+      "total",
+      "Parcelamento ultrapassa o limite de competências.",
+    );
+  return `${String(y).padStart(4, "0")}-${String((index % 12) + 1).padStart(2, "0")}`;
+}
 export function savePurchase(
   data: AppData,
   personId: string,
@@ -56,6 +68,7 @@ export function savePurchase(
   draft: PurchaseDraft,
   purchaseId?: string,
   targetPersonId = personId,
+  scope: SeriesScope = "single",
 ): AppData {
   const description = normalizeName(draft.description);
   if (!description)
@@ -63,7 +76,7 @@ export function savePurchase(
   if (!data.cards.some((c) => c.id === draft.cardId))
     throw new PurchaseError("cardId", "Selecione um cartão válido.");
   const amountCents = parseAmount(draft.amount);
-  let installment = null;
+  let installment: Compra["installment"] = null;
   if (draft.parcelled) {
     const read = (value: string, field: "current" | "total") => {
       if (
@@ -94,44 +107,139 @@ export function savePurchase(
     throw new Error("Compra não encontrada nesta pessoa e competência.");
   if (!data.people.some((p) => p.id === targetPersonId))
     throw new PurchaseError("personId", "Selecione uma pessoa válida.");
-  const next = ensureInvoice(data, targetPersonId, reference);
-  const invoice = selectInvoice(next, targetPersonId, reference).invoice!;
+  if (
+    existing?.installmentSeriesId &&
+    installment &&
+    installment.current !== existing.installment?.current
+  )
+    throw new PurchaseError(
+      "current",
+      "O número da parcela de uma série não pode ser alterado.",
+    );
+  if (
+    existing?.installmentSeriesId &&
+    scope === "single" &&
+    installment &&
+    installment.total !== existing.installment?.total
+  )
+    throw new PurchaseError(
+      "total",
+      "Para alterar o total, selecione esta e as próximas ou toda a série.",
+    );
+  const seriesId =
+    existing?.installmentSeriesId ??
+    (!existing && installment ? createId() : undefined);
+  const series = seriesId
+    ? data.purchases.filter((p) => p.installmentSeriesId === seriesId)
+    : [];
+  if (existing && scope !== "single" && seriesId && !installment)
+    throw new PurchaseError(
+      "total",
+      "Mantenha o parcelamento para editar a série. Para cancelar, exclua esta e as próximas.",
+    );
+  if (
+    installment &&
+    existing &&
+    scope !== "single" &&
+    series.some(
+      (p) =>
+        p.installment!.current > installment.total &&
+        p.installment!.current < existing.installment!.current,
+    )
+  )
+    throw new PurchaseError(
+      "total",
+      "O total não pode remover parcelas anteriores.",
+    );
+  let next = data;
   const now = new Date().toISOString();
-  const purchase = {
-    createdAt: existing ? existing.createdAt : now,
-    updatedAt: now,
-    id: existing?.id ?? createId(),
-    invoiceId: invoice.id,
-    cardId: draft.cardId,
-    description,
-    amountCents,
-    installment,
-  };
+  const affected = new Map<string, Set<string>>();
+  function touch(invoiceId: string, cardId: string) {
+    const cards = affected.get(invoiceId) ?? new Set<string>();
+    cards.add(cardId);
+    affected.set(invoiceId, cards);
+  }
+  let purchases = [...data.purchases];
+  function put(
+    old: Compra | undefined,
+    ref: string,
+    current: number | undefined,
+  ) {
+    next = ensureInvoice(next, targetPersonId, ref);
+    const invoice = selectInvoice(next, targetPersonId, ref).invoice!;
+    if (old) touch(old.invoiceId, old.cardId);
+    touch(invoice.id, draft.cardId);
+    const purchase: Compra = {
+      ...old,
+      id: old?.id ?? createId(),
+      invoiceId: invoice.id,
+      createdAt: old?.createdAt ?? now,
+      updatedAt: now,
+      cardId: draft.cardId,
+      description,
+      amountCents,
+      installment: installment
+        ? { current: current!, total: installment.total }
+        : null,
+      ...(installment && seriesId ? { installmentSeriesId: seriesId } : {}),
+    };
+    if (!installment) delete purchase.installmentSeriesId;
+    purchases = old
+      ? purchases.map((p) => (p.id === old.id ? purchase : p))
+      : [...purchases, purchase];
+  }
+  if (
+    (!existing && installment) ||
+    (existing && seriesId && scope !== "single" && installment)
+  ) {
+    const start = installment!.current;
+    advanceReference(reference, installment!.total - start);
+    for (const old of series) {
+      const n = old.installment!.current;
+      if (n > installment!.total && n >= start) {
+        touch(old.invoiceId, old.cardId);
+        purchases = purchases.filter((p) => p.id !== old.id);
+      } else if (scope === "all" && n < start) {
+        put(
+          old,
+          data.invoices.find((f) => f.id === old.invoiceId)!.reference,
+          n,
+        );
+      }
+    }
+    for (let n = start; n <= installment!.total; n++)
+      put(
+        series.find((p) => p.installment!.current === n),
+        advanceReference(reference, n - start),
+        n,
+      );
+  } else put(existing, reference, installment?.current);
   return {
     ...next,
+    purchases,
     invoices: next.invoices.map((f) =>
-      f.id === invoice.id || f.id === existing?.invoiceId
+      affected.has(f.id)
         ? {
             ...f,
             updatedAt: now,
             cardUpdatedAt: {
               ...f.cardUpdatedAt,
-              [draft.cardId]: now,
-              ...(existing ? { [existing.cardId]: now } : {}),
+              ...Object.fromEntries(
+                [...affected.get(f.id)!].map((c) => [c, now]),
+              ),
             },
           }
         : f,
     ),
-    purchases: existing
-      ? next.purchases.map((p) => (p.id === existing.id ? purchase : p))
-      : [...next.purchases, purchase],
   };
 }
+
 export function deletePurchase(
   data: AppData,
   personId: string,
   reference: string,
   purchaseId: string,
+  scope: "single" | "following" = "single",
 ): AppData {
   if (
     !selectInvoice(data, personId, reference).purchases.some(
@@ -140,18 +248,35 @@ export function deletePurchase(
   )
     throw new Error("Compra não encontrada nesta pessoa e competência.");
   const purchase = data.purchases.find((p) => p.id === purchaseId)!;
+  const removed = data.purchases.filter(
+    (p) =>
+      p.id === purchaseId ||
+      (scope === "following" &&
+        !!purchase.installmentSeriesId &&
+        p.installmentSeriesId === purchase.installmentSeriesId &&
+        p.installment!.current >= purchase.installment!.current),
+  );
   const now = new Date().toISOString();
   return {
     ...data,
     invoices: data.invoices.map((f) =>
-      f.id === purchase.invoiceId
+      removed.some((p) => p.invoiceId === f.id)
         ? {
             ...f,
             updatedAt: now,
-            cardUpdatedAt: { ...f.cardUpdatedAt, [purchase.cardId]: now },
+            cardUpdatedAt: {
+              ...f.cardUpdatedAt,
+              ...Object.fromEntries(
+                removed
+                  .filter((p) => p.invoiceId === f.id)
+                  .map((p) => [p.cardId, now]),
+              ),
+            },
           }
         : f,
     ),
-    purchases: data.purchases.filter((p) => p.id !== purchaseId),
+    purchases: data.purchases.filter(
+      (p) => !removed.some((old) => old.id === p.id),
+    ),
   };
 }

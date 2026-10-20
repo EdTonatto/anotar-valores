@@ -225,6 +225,36 @@ export function CardInvoices({
                     >
                       Confirmar exclusão
                     </button>
+                    {p.installmentSeriesId && (
+                      <button
+                        className="danger"
+                        disabled={!writable}
+                        onClick={() => {
+                          try {
+                            if (
+                              update(
+                                deletePurchase(
+                                  data,
+                                  person.id,
+                                  reference,
+                                  p.id,
+                                  "following",
+                                ),
+                              )
+                            )
+                              reset();
+                          } catch (e) {
+                            setNotice(
+                              e instanceof Error
+                                ? e.message
+                                : "Não foi possível excluir.",
+                            );
+                          }
+                        }}
+                      >
+                        Excluir esta e as próximas
+                      </button>
+                    )}
                     <button onClick={() => setDeleting(null)}>Cancelar</button>
                   </div>
                 )}
