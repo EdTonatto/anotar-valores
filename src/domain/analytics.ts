@@ -50,7 +50,9 @@ export function getDashboardPurchases(
   data: AppData,
   filters: DashboardFilters,
 ): DashboardPurchase[] {
-  const invoices = new Map(data.invoices.map((invoice) => [invoice.id, invoice]));
+  const invoices = new Map(
+    data.invoices.map((invoice) => [invoice.id, invoice]),
+  );
   const people = new Map(data.people.map((person) => [person.id, person]));
   const cards = new Map(data.cards.map((card) => [card.id, card]));
 
@@ -59,16 +61,20 @@ export function getDashboardPurchases(
     const person = invoice && people.get(invoice.personId);
     const card = cards.get(purchase.cardId);
     if (!invoice || !person || !card) return [];
-    if (isReference(filters.from) && invoice.reference < filters.from) return [];
+    if (isReference(filters.from) && invoice.reference < filters.from)
+      return [];
     if (isReference(filters.to) && invoice.reference > filters.to) return [];
     if (filters.people.length && !filters.people.includes(person.id)) return [];
     if (filters.cards.length && !filters.cards.includes(card.id)) return [];
     if (filters.purchaseType === "single" && purchase.installment) return [];
-    if (filters.purchaseType === "installment" && !purchase.installment) return [];
+    if (filters.purchaseType === "installment" && !purchase.installment)
+      return [];
     if (filters.status === "active" && purchase.reimbursed) return [];
     if (filters.status === "reimbursed" && !purchase.reimbursed) return [];
-    if (filters.minCents !== null && purchase.amountCents < filters.minCents) return [];
-    if (filters.maxCents !== null && purchase.amountCents > filters.maxCents) return [];
+    if (filters.minCents !== null && purchase.amountCents < filters.minCents)
+      return [];
+    if (filters.maxCents !== null && purchase.amountCents > filters.maxCents)
+      return [];
     return [
       {
         ...purchase,
@@ -99,7 +105,8 @@ function rowsFor(
   >();
   for (const purchase of purchases) {
     const id = dimension === "person" ? purchase.personId : purchase.cardId;
-    const name = dimension === "person" ? purchase.personName : purchase.cardName;
+    const name =
+      dimension === "person" ? purchase.personName : purchase.cardName;
     const group = groups.get(id) ?? { name, purchases: [] };
     group.purchases.push(purchase);
     groups.set(id, group);
@@ -120,7 +127,10 @@ function rowsFor(
   });
 }
 
-export function getDashboardAnalytics(data: AppData, filters: DashboardFilters) {
+export function getDashboardAnalytics(
+  data: AppData,
+  filters: DashboardFilters,
+) {
   const purchases = getDashboardPurchases(data, filters);
   const activePurchases = purchases.filter((purchase) => !purchase.reimbursed);
   const totalCents = amountOf(purchases);
@@ -172,7 +182,9 @@ export function getDashboardAnalytics(data: AppData, filters: DashboardFilters) 
   }
   const largestPurchase = activePurchases.reduce<DashboardPurchase | null>(
     (largest, purchase) =>
-      !largest || purchase.amountCents > largest.amountCents ? purchase : largest,
+      !largest || purchase.amountCents > largest.amountCents
+        ? purchase
+        : largest,
     null,
   );
   const leadingPerson = byPerson
@@ -186,8 +198,10 @@ export function getDashboardAnalytics(data: AppData, filters: DashboardFilters) 
     totalCents,
     purchaseCount: purchases.length,
     activeCount: activePurchases.length,
-    peopleCount: new Set(activePurchases.map((purchase) => purchase.personId)).size,
-    cardsCount: new Set(activePurchases.map((purchase) => purchase.cardId)).size,
+    peopleCount: new Set(activePurchases.map((purchase) => purchase.personId))
+      .size,
+    cardsCount: new Set(activePurchases.map((purchase) => purchase.cardId))
+      .size,
     averageCents: activePurchases.length
       ? totalCents / BigInt(activePurchases.length)
       : 0n,
@@ -209,9 +223,11 @@ export function sortAnalyticsRows(
   return [...rows].sort((a, b) => {
     if (sort === "count")
       return (
-        b.purchaseCount - a.purchaseCount || a.name.localeCompare(b.name, "pt-BR")
+        b.purchaseCount - a.purchaseCount ||
+        a.name.localeCompare(b.name, "pt-BR")
       );
-    if (a.totalCents === b.totalCents) return a.name.localeCompare(b.name, "pt-BR");
+    if (a.totalCents === b.totalCents)
+      return a.name.localeCompare(b.name, "pt-BR");
     return sort === "value-desc"
       ? a.totalCents > b.totalCents
         ? -1
