@@ -22,7 +22,7 @@ export function selectInvoiceSummary(
     const group = byCard.get(purchase.cardId);
     if (!group) throw new Error("Compra vinculada a um cartão inexistente.");
     group.purchases.push(purchase);
-    group.subtotalCents += BigInt(purchase.amountCents);
+    if (!purchase.reimbursed) group.subtotalCents += BigInt(purchase.amountCents);
   }
   return {
     invoice,
@@ -71,7 +71,9 @@ export function selectCardInvoiceSummary(
         person,
         purchaseCount: rows.length,
         subtotalCents: rows.reduce(
-          (sum, row) => sum + BigInt(row.purchase.amountCents),
+          (sum, row) =>
+            sum +
+            (row.purchase.reimbursed ? 0n : BigInt(row.purchase.amountCents)),
           0n,
         ),
       };
