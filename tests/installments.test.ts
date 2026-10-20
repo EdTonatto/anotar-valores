@@ -169,6 +169,38 @@ test("exclusão isolada e futuras não alcançam outras séries; legado não ger
   assert.equal(edited.purchases.length, 1);
   assert.ok(isAppData(edited));
 });
+test("edição isolada cria parcelas futuras ausentes sem duplicar as existentes", () => {
+  const complete = series();
+  const partial = structuredClone(complete);
+  partial.purchases = partial.purchases.filter(
+    (p) => p.installment!.current === 3 || p.installment!.current === 4,
+  );
+  const original = partial.purchases.find((p) => p.installment?.current === 3)!;
+  const edited = savePurchase(
+    partial,
+    "a",
+    "2026-11",
+    { ...draft, current: "3", total: "5", description: "Notebook editado" },
+    original.id,
+  );
+  assert.deepEqual(
+    edited.purchases.map((p) => p.installment!.current).sort((a, b) => a - b),
+    [3, 4, 5],
+  );
+  assert.equal(
+    edited.purchases.find((p) => p.installment!.current === 3)?.description,
+    "Notebook editado",
+  );
+  assert.equal(
+    edited.purchases.find((p) => p.installment!.current === 4)?.description,
+    "Notebook",
+  );
+  assert.equal(
+    edited.purchases.find((p) => p.installment!.current === 5)?.description,
+    "Notebook editado",
+  );
+  assert.ok(isAppData(edited));
+});
 test("JSON e reload preservam séries; duplicata lógica e parcelas inválidas são rejeitadas", () => {
   const data = series();
   const incoming = parseImport(JSON.stringify(canonicalData(data)));

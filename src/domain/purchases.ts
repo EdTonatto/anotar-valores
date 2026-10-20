@@ -202,6 +202,7 @@ export function savePurchase(
   const series = seriesId
     ? data.purchases.filter((p) => p.installmentSeriesId === seriesId)
     : [];
+  const identifiedSeries = !!existing?.installmentSeriesId;
   if (existing && scope !== "single" && seriesId && !installment)
     throw new PurchaseError(
       "total",
@@ -264,7 +265,7 @@ export function savePurchase(
   }
   if (
     (!existing && installment) ||
-    (existing && seriesId && scope !== "single" && installment)
+    (existing && seriesId && installment && scope !== "single")
   ) {
     const start = installment!.current;
     advanceReference(reference, installment!.total - start);
@@ -281,13 +282,30 @@ export function savePurchase(
         );
       }
     }
-    for (let n = start; n <= installment!.total; n++)
-      put(
-        series.find((p) => p.installment!.current === n),
-        advanceReference(reference, n - start),
-        n,
-      );
-  } else put(existing, reference, installment?.current);
+    for (let n = start; n <= installment!.total; n++) {
+      const old = series.find((p) => p.installment!.current === n);
+      if (scope !== "single" || !old)
+        put(old, advanceReference(reference, n - start), n);
+    }
+  } else if (existing && identifiedSeries && installment) {
+    put(existing, reference, installment.current);
+    for (let n = installment.current + 1; n <= installment.total; n++) {
+      const old = series.find((p) => p.installment!.current === n);
+      if (!old)
+        put(undefined, advanceReference(reference, n - installment.current), n);
+    }
+  } else {
+    put(existing, reference, installment?.current);
+    if (
+      existing &&
+      !existing.installmentSeriesId &&
+      installment &&
+      scope !== "single"
+    ) {
+      for (let n = installment.current + 1; n <= installment.total; n++)
+        put(undefined, advanceReference(reference, n - installment.current), n);
+    }
+  }
   return {
     ...next,
     purchases,
