@@ -792,6 +792,37 @@ test("lançar por cartão atualiza faturas individuais e mantém compras únicas
   assert.equal(stored.purchases.length, 2);
 });
 
+test("fatura por pessoa mostra somente a parcela da compra dividida", async () => {
+  const u = await start();
+  await go(u, "Pessoas");
+  await u.click(screen.getByRole("button", { name: "+ Nova pessoa" }));
+  await u.type(screen.getByLabelText("Cadastrar pessoa"), "Bruno");
+  await u.click(screen.getByRole("button", { name: "Salvar" }));
+  await go(u, "Fatura por pessoa");
+  await u.click(screen.getByLabelText("Dividir entre pessoas"));
+  const shares = document.querySelectorAll<HTMLInputElement>(
+    ".purchase-split input",
+  );
+  await u.clear(shares[0]);
+  await u.type(shares[0], "1/3");
+  await u.clear(shares[1]);
+  await u.type(shares[1], "2/3");
+  await add(u, "Compra dividida", "30000");
+  assert.equal(
+    (screen.getByLabelText("Dividir entre pessoas") as HTMLInputElement)
+      .checked,
+    false,
+  );
+  assert.ok(screen.getAllByText("R$ 100,00").length > 0);
+  await u.selectOptions(
+    screen.getByLabelText("Pessoa", { exact: true }),
+    within(screen.getByLabelText("Pessoa", { exact: true }))
+      .getByRole("option", { name: "Ana" })
+      .getAttribute("value")!,
+  );
+  assert.ok(screen.getAllByText("R$ 200,00").length > 0);
+});
+
 test("cartão zerado fica oculto por pessoa e reaparece ao lançar pela visão por cartão", async () => {
   const u = await start();
   assert.ok(screen.getByText("Ainda não há compras registradas."));

@@ -1,5 +1,9 @@
-import { formatTimestamp } from "../domain/totals";
-import { formatItemCount, selectInvoiceSummary } from "../domain/totals";
+import {
+  formatItemCount,
+  formatTimestamp,
+  selectInvoiceSummary,
+  selectPurchasePersonAmountCents,
+} from "../domain/totals";
 import { PurchaseEditor } from "./PurchaseEditor";
 import { deletePurchase, setPurchaseReimbursed } from "../domain/purchases";
 import {
@@ -360,7 +364,16 @@ export function Cards({
                                     : "À vista"}
                                 </small>
                               </div>
-                              <span>{formatCents(BigInt(p.amountCents))}</span>
+                              <span>
+                                {formatCents(
+                                  BigInt(
+                                    selectPurchasePersonAmountCents(
+                                      p,
+                                      personId,
+                                    ),
+                                  ),
+                                )}
+                              </span>
                               <div className="purchase-item-actions">
                                 <button
                                   disabled={!writable}
@@ -408,8 +421,15 @@ export function Cards({
                                 >
                                   <p>
                                     Excluir “{p.description}” de{" "}
-                                    {formatCents(BigInt(p.amountCents))} desta
-                                    fatura?
+                                    {formatCents(
+                                      BigInt(
+                                        selectPurchasePersonAmountCents(
+                                          p,
+                                          personId,
+                                        ),
+                                      ),
+                                    )}{" "}
+                                    desta fatura?
                                   </p>
                                   <button
                                     className="danger"
