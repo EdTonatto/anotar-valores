@@ -66,10 +66,23 @@ export function selectInvoice(
   const invoice = data.invoices.find(
     (f) => f.personId === personId && f.reference === reference,
   );
+  const legacyPurchases = invoice
+    ? data.purchases.filter(
+        (p) => p.invoiceId === invoice.id && !p.participants,
+      )
+    : [];
+  const splitPurchases = data.purchases.filter(
+    (p) =>
+      p.participants?.some(
+        (participant) => participant.personId === personId,
+      ) &&
+      data.invoices.some(
+        (candidate) =>
+          candidate.id === p.invoiceId && candidate.reference === reference,
+      ),
+  );
   return {
     invoice,
-    purchases: invoice
-      ? data.purchases.filter((p) => p.invoiceId === invoice.id)
-      : [],
+    purchases: [...legacyPurchases, ...splitPurchases],
   };
 }

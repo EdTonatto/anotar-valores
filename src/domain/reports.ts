@@ -31,6 +31,13 @@ export function canonicalData(data: AppData): AppData {
       ...(p.createdAt ? { createdAt: p.createdAt } : {}),
       ...(p.updatedAt ? { updatedAt: p.updatedAt } : {}),
       ...(p.reimbursed ? { reimbursed: true } : {}),
+      ...(p.participants
+        ? {
+            participants: p.participants.map((participant) => ({
+              ...participant,
+            })),
+          }
+        : {}),
       amountCents: p.amountCents,
       installment: p.installment
         ? { current: p.installment.current, total: p.installment.total }
@@ -104,7 +111,10 @@ export function whatsappReport(
     if (!group.purchases.length) continue;
     lines.push("", `*${messageText(group.card.name)}*`);
     for (const p of group.purchases) {
-      const line = `• ${messageText(p.description)}${p.installment ? ` (${p.installment.current}/${p.installment.total})` : " (à vista)"} — ${formatCents(BigInt(p.amountCents))}`;
+      const share = p.participants?.find(
+        (participant) => participant.personId === personId,
+      )?.amountCents;
+      const line = `• ${messageText(p.description)}${p.installment ? ` (${p.installment.current}/${p.installment.total})` : " (à vista)"} — ${formatCents(BigInt(share ?? p.amountCents))}`;
       lines.push(p.reimbursed ? `~${line} — reembolsada/estornada~` : line);
     }
     lines.push(
