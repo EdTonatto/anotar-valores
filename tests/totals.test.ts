@@ -32,8 +32,22 @@ const draft = (cardId: string, amount: string): PurchaseDraft => ({
   total: "",
 });
 test("rateio aceita proporções e fecha centavos deterministicamente", () => {
-  assert.deepEqual(allocateShares(30000, [{personId:"p",share:"1/3"},{personId:"q",share:"2/3"}]), [{personId:"p",amountCents:10000},{personId:"q",amountCents:20000}]);
-  assert.throws(() => allocateShares(100, [{personId:"p",share:"1/2"},{personId:"q",share:"1/3"}]));
+  assert.deepEqual(
+    allocateShares(30000, [
+      { personId: "p", share: "1/3" },
+      { personId: "q", share: "2/3" },
+    ]),
+    [
+      { personId: "p", amountCents: 10000 },
+      { personId: "q", amountCents: 20000 },
+    ],
+  );
+  assert.throws(() =>
+    allocateShares(100, [
+      { personId: "p", share: "1/2" },
+      { personId: "q", share: "1/3" },
+    ]),
+  );
 });
 test("exemplo de aceite: 134,90 + 120,00 = 254,90 sem dupla contagem", () => {
   let data = savePurchase(fixture(), "p", "2026-10", draft("a", "134,90"));
@@ -57,11 +71,23 @@ test("compra rateada aparece nas duas faturas e soma inteira uma vez no cartão"
     undefined,
     "p",
     "single",
-    [{ personId: "p", share: "1/3" }, { personId: "q", share: "2/3" }],
+    [
+      { personId: "p", share: "1/3" },
+      { personId: "q", share: "2/3" },
+    ],
   );
-  assert.equal(selectInvoiceSummary(invoice, "p", "2026-10").totalCents, 10000n);
-  assert.equal(selectInvoiceSummary(invoice, "q", "2026-10").totalCents, 20000n);
-  assert.equal(selectCardInvoiceSummary(invoice, "a", "2026-10").totalCents, 30000n);
+  assert.equal(
+    selectInvoiceSummary(invoice, "p", "2026-10").totalCents,
+    10000n,
+  );
+  assert.equal(
+    selectInvoiceSummary(invoice, "q", "2026-10").totalCents,
+    20000n,
+  );
+  assert.equal(
+    selectCardInvoiceSummary(invoice, "a", "2026-10").totalCents,
+    30000n,
+  );
 });
 
 test("compra reembolsada permanece visível, mas não entra nos totais", () => {

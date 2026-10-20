@@ -127,8 +127,16 @@ export function isAppData(value: unknown): value is AppData {
             integer(participant.amountCents) &&
             participant.amountCents > 0,
         ) ||
-        new Set(v.participants.map((participant) => (participant as { personId: string }).personId)).size !== v.participants.length ||
-        v.participants.reduce((sum, participant) => sum + (participant as { amountCents: number }).amountCents, 0) !== v.amountCents
+        new Set(
+          v.participants.map(
+            (participant) => (participant as { personId: string }).personId,
+          ),
+        ).size !== v.participants.length ||
+        v.participants.reduce(
+          (sum, participant) =>
+            sum + (participant as { amountCents: number }).amountCents,
+          0,
+        ) !== v.amountCents
       )
         return false;
     }

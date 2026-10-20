@@ -174,10 +174,19 @@ export function CardInvoices({
                   </strong>
                   <small>Registrada em: {formatTimestamp(p.createdAt)}</small>
                   <small>
-                    {(p.participants ?? [{ personId: person.id, amountCents: p.amountCents }]).map((participant) => {
-                      const participantPerson = data.people.find((item) => item.id === participant.personId);
-                      return `${participantPerson?.name ?? "Pessoa"} ${formatCents(BigInt(participant.amountCents))}`;
-                    }).join(" · ")} ·{" "}
+                    {(
+                      p.participants ?? [
+                        { personId: person.id, amountCents: p.amountCents },
+                      ]
+                    )
+                      .map((participant) => {
+                        const participantPerson = data.people.find(
+                          (item) => item.id === participant.personId,
+                        );
+                        return `${participantPerson?.name ?? "Pessoa"} ${formatCents(BigInt(participant.amountCents))}`;
+                      })
+                      .join(" · ")}{" "}
+                    ·{" "}
                     {p.installment
                       ? `Parcela ${p.installment.current}/${p.installment.total}`
                       : "À vista"}

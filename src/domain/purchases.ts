@@ -28,35 +28,62 @@ export function allocateShares(
   amountCents: number,
   participants: { personId: string; share: string }[],
 ): { personId: string; amountCents: number }[] {
-  if (participants.length < 2 || new Set(participants.map((p) => p.personId)).size !== participants.length)
-    throw new PurchaseError("personId", "Selecione ao menos duas pessoas diferentes.");
+  if (
+    participants.length < 2 ||
+    new Set(participants.map((p) => p.personId)).size !== participants.length
+  )
+    throw new PurchaseError(
+      "personId",
+      "Selecione ao menos duas pessoas diferentes.",
+    );
   const weights = participants.map(({ personId, share }) => {
     const fractionInput = share.trim();
     if (/^\d+\/\d+$/.test(fractionInput)) {
       const [numerator, denominator] = fractionInput.split("/").map(BigInt);
       if (numerator <= 0n || denominator <= 0n)
-        throw new PurchaseError("personId", "Informe uma proporção válida para cada pessoa.");
+        throw new PurchaseError(
+          "personId",
+          "Informe uma proporção válida para cada pessoa.",
+        );
       return { personId, weight: numerator, scale: denominator };
     }
     const clean = fractionInput.replace(",", ".");
     if (!/^\d+(?:\.\d+)?$/.test(clean) || Number(clean) <= 0)
-      throw new PurchaseError("personId", "Informe uma proporção válida para cada pessoa.");
+      throw new PurchaseError(
+        "personId",
+        "Informe uma proporção válida para cada pessoa.",
+      );
     const [whole, fraction = ""] = clean.split(".");
     const scale = 10n ** BigInt(fraction.length);
-    return { personId, weight: BigInt(whole) * scale + BigInt(fraction), scale };
+    return {
+      personId,
+      weight: BigInt(whole) * scale + BigInt(fraction),
+      scale,
+    };
   });
-  const scale = weights.reduce((common, item) => common * item.scale / gcd(common, item.scale), 1n);
+  const scale = weights.reduce(
+    (common, item) => (common * item.scale) / gcd(common, item.scale),
+    1n,
+  );
   const normalized = weights.map((item) => item.weight * (scale / item.scale));
   const totalWeight = normalized.reduce((sum, weight) => sum + weight, 0n);
   if (totalWeight !== scale)
-    throw new PurchaseError("personId", "A soma das proporções deve ser exatamente 1 (100%).");
+    throw new PurchaseError(
+      "personId",
+      "A soma das proporções deve ser exatamente 1 (100%).",
+    );
   let assigned = 0;
   return normalized.map((weight, index) => {
-    const cents = index === normalized.length - 1
-      ? amountCents - assigned
-      : Number((BigInt(amountCents) * weight) / totalWeight);
+    const cents =
+      index === normalized.length - 1
+        ? amountCents - assigned
+        : Number((BigInt(amountCents) * weight) / totalWeight);
     assigned += cents;
-    if (cents <= 0) throw new PurchaseError("personId", "Cada participante precisa receber ao menos R$ 0,01.");
+    if (cents <= 0)
+      throw new PurchaseError(
+        "personId",
+        "Cada participante precisa receber ao menos R$ 0,01.",
+      );
     return { personId: participants[index].personId, amountCents: cents };
   });
 }

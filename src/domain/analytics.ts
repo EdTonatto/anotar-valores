@@ -63,19 +63,36 @@ export function getDashboardPurchases(
       return [];
     if (filters.status === "active" && purchase.reimbursed) return [];
     if (filters.status === "reimbursed" && !purchase.reimbursed) return [];
-    const participants = purchase.participants ?? [{ personId: owner.id, amountCents: purchase.amountCents }];
-    return participants.filter(participant => !filters.people.length || filters.people.includes(participant.personId)).flatMap(participant => {
-      const person = people.get(participant.personId);
-      if (!person || (filters.minCents !== null && participant.amountCents < filters.minCents) || (filters.maxCents !== null && participant.amountCents > filters.maxCents)) return [];
-      return [{
-        ...purchase,
-        amountCents: participant.amountCents,
-        personId: person.id,
-        personName: person.name,
-        cardName: card.name,
-        reference: invoice.reference,
-      }];
-    });
+    const participants = purchase.participants ?? [
+      { personId: owner.id, amountCents: purchase.amountCents },
+    ];
+    return participants
+      .filter(
+        (participant) =>
+          !filters.people.length ||
+          filters.people.includes(participant.personId),
+      )
+      .flatMap((participant) => {
+        const person = people.get(participant.personId);
+        if (
+          !person ||
+          (filters.minCents !== null &&
+            participant.amountCents < filters.minCents) ||
+          (filters.maxCents !== null &&
+            participant.amountCents > filters.maxCents)
+        )
+          return [];
+        return [
+          {
+            ...purchase,
+            amountCents: participant.amountCents,
+            personId: person.id,
+            personName: person.name,
+            cardName: card.name,
+            reference: invoice.reference,
+          },
+        ];
+      });
   });
 }
 const active = (rows: DashboardPurchase[]) =>
@@ -86,7 +103,10 @@ const sum = (rows: DashboardPurchase[], dimension?: "person" | "card") =>
       total +
       BigInt(
         dimension === "card"
-          ? (row.participants?.reduce((subtotal, participant) => subtotal + participant.amountCents, 0) ?? row.amountCents)
+          ? (row.participants?.reduce(
+              (subtotal, participant) => subtotal + participant.amountCents,
+              0,
+            ) ?? row.amountCents)
           : row.amountCents,
       ),
     0n,
@@ -159,7 +179,8 @@ export function getDashboardAnalytics(
         purchases.filter(
           (purchase) =>
             purchase.personId === person.id && purchase.cardId === card.id,
-        ), "person",
+        ),
+        "person",
       ),
     })),
   }));
@@ -172,7 +193,8 @@ export function getDashboardAnalytics(
   const months = monthRefs.map((reference) => ({
     reference,
     totalCents: sum(
-      monthlyPurchases.filter((purchase) => purchase.reference === reference), "card",
+      monthlyPurchases.filter((purchase) => purchase.reference === reference),
+      "card",
     ),
   }));
   const largestPurchase = included.reduce<DashboardPurchase | null>(
