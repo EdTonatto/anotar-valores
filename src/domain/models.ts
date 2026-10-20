@@ -15,6 +15,7 @@ export interface Fatura {
   cardUpdatedAt?: Record<string, string>;
 }
 export interface Compra {
+  installmentSeriesId?: string;
   id: string;
   invoiceId: string;
   cardId: string;
@@ -93,6 +94,7 @@ export function isAppData(value: unknown): value is AppData {
     ).size !== fs.length
   )
     return false;
+  const seriesKeys = new Set<string>();
   return bs.every((v) => {
     if (
       !record(v) ||
@@ -108,6 +110,12 @@ export function isAppData(value: unknown): value is AppData {
     )
       return false;
     const i = v.installment;
+    if (v.installmentSeriesId !== undefined) {
+      if (!text(v.installmentSeriesId) || !record(i)) return false;
+      const key = JSON.stringify([v.installmentSeriesId, i.current]);
+      if (seriesKeys.has(key)) return false;
+      seriesKeys.add(key);
+    }
     return (
       i === null ||
       (record(i) &&

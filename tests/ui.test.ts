@@ -149,10 +149,16 @@ test("fluxo completo da interface: cadastro, parcelas, renomeação, recarga, Wh
   assert.ok(
     screen.getByText("Importação concluída. Dados e totais atualizados."),
   );
-  assert.deepEqual(
-    JSON.parse(window.localStorage.getItem(STORAGE_KEY)!),
-    JSON.parse(saved),
-  );
+  assert.deepEqual(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!), {
+    ...JSON.parse(saved),
+    invoices: JSON.parse(saved).invoices.filter(
+      (f: { reference: string }) => f.reference === "2026-10",
+    ),
+    purchases: JSON.parse(saved).purchases.filter(
+      (p: { invoiceId: string }) =>
+        p.invoiceId === JSON.parse(exported).invoices[0].id,
+    ),
+  });
 });
 test("editar e excluir com cancelamento preservam contexto e totais; filtros isolam meses", async () => {
   const u = await start();
@@ -850,4 +856,40 @@ test("editar nas duas visões permite transferir cartão e comprador sem duplica
       );
     }
   }
+});
+
+test("série: edição e exclusão futuras exigem alcance explícito e preservam anteriores", async () => {
+  const u = await start();
+  await u.click(screen.getByLabelText("Parcelada"));
+  await u.type(screen.getByLabelText("Parcela atual"), "1");
+  await u.type(screen.getByLabelText("Total de parcelas"), "3");
+  await add(u, "Notebook", "25000");
+  const read = () => JSON.parse(window.localStorage.getItem(STORAGE_KEY)!);
+  assert.equal(read().purchases.length, 3);
+  fireEvent.change(screen.getByLabelText("Mês da fatura"), {
+    target: { value: "2026-11" },
+  });
+  assert.ok(screen.getByText("Parcela 2/3"));
+  await u.click(screen.getByRole("button", { name: "Editar compra Notebook" }));
+  await u.selectOptions(
+    screen.getByLabelText(/Aplicar alterações a/),
+    "following",
+  );
+  await u.clear(screen.getByLabelText("Descrição"));
+  await u.type(screen.getByLabelText("Descrição"), "Alterada");
+  await u.click(screen.getByRole("button", { name: "Salvar alterações" }));
+  assert.equal(
+    read().purchases.filter(
+      (p: { description: string }) => p.description === "Alterada",
+    ).length,
+    2,
+  );
+  await u.click(
+    screen.getByRole("button", { name: "Excluir compra Alterada" }),
+  );
+  await u.click(
+    screen.getByRole("button", { name: "Excluir esta e as próximas" }),
+  );
+  assert.equal(read().purchases.length, 1);
+  assert.equal(read().purchases[0].description, "Notebook");
 });

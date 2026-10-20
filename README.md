@@ -58,7 +58,9 @@ A importação oferece mesclagem por ID ou substituição somente das compras da
 
 `schemaVersion: 1` e coleções `people`, `cards`, `invoices`, `purchases`. Pessoas/cartões possuem `id` e `name`. Faturas têm `id`, `personId`, `reference` (`AAAA-MM`). Compras têm `id`, `invoiceId`, `cardId`, `description`, `amountCents` e `installment` (`null` ou `{ current, total }`).
 
-`amountCents` é inteiro positivo seguro, com o valor desta fatura. Parcelas futuras não são geradas automaticamente. Totais são derivados, nunca persistidos. Preserve IDs para mesclar backups sem duplicar registros.
+`amountCents` é inteiro positivo seguro, com o valor desta fatura. Novas compras parceladas geram a parcela atual e as restantes nas competências seguintes, inclusive na virada do ano; o valor informado é mensal. Todas compartilham `installmentSeriesId` e mantêm IDs próprios. Compras antigas permanecem independentes, sem geração retroativa. A competência e a pessoa continuam vinculadas pela fatura (`invoiceId`). O schemaVersion 1 é preservado porque o novo campo é opcional.
+
+Na edição, escolha somente esta parcela, esta e as próximas ou toda a série. Para ajustar o total, escolha um alcance de série; parcelas anteriores nunca são removidas. A exclusão permite somente esta parcela ou esta e as próximas. O backup completo preserva todas as competências; o JSON e o WhatsApp mensais incluem somente a competência selecionada. Totais são derivados, nunca persistidos. Preserve IDs para mesclar backups sem duplicar registros.
 
 ## Estrutura
 

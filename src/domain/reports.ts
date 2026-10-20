@@ -21,6 +21,9 @@ export function canonicalData(data: AppData): AppData {
       ...(f.cardUpdatedAt ? { cardUpdatedAt: { ...f.cardUpdatedAt } } : {}),
     })),
     purchases: data.purchases.map((p) => ({
+      ...(p.installmentSeriesId
+        ? { installmentSeriesId: p.installmentSeriesId }
+        : {}),
       id: p.id,
       invoiceId: p.invoiceId,
       cardId: p.cardId,
@@ -187,7 +190,8 @@ export function planImport(
         existing.description === item.description &&
         existing.amountCents === item.amountCents &&
         existing.installment?.current === item.installment?.current &&
-        existing.installment?.total === item.installment?.total
+        existing.installment?.total === item.installment?.total &&
+        existing.installmentSeriesId === item.installmentSeriesId
       ))
         throw new Error(
           "Conflito de ID de compra. Para atualizar compras das faturas importadas, escolha substituir. IDs de outras faturas precisam ser corrigidos.",
