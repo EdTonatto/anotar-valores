@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Organize compras compartilhadas por pessoa, cartão e fatura."
+    />
+    <script>
+      // Apply before first paint, including when browser storage is unavailable.
+      try {
+        const preference = localStorage.getItem("anotar-valores:theme");
+        document.documentElement.dataset.theme = [
+          "light",
+          "dark",
+          "pink",
+          "pink-dark",
+          "lilac",
+          "lilac-dark",
+        ].includes(preference)
+          ? preference
+          : matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+      } catch {
+        document.documentElement.dataset.theme = matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches
+          ? "dark"
+          : "light";
+      }
+    </script>
+    <title>Anotar Valores</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
