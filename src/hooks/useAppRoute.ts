@@ -6,6 +6,7 @@ export const pages = {
   faturasCartao: "Faturas por cartão",
   cartoes: "Cartões",
   historico: "Histórico de faturas",
+  dashboard: "Dashboard",
   whatsapp: "WhatsApp",
   exportar: "Exportar JSON da fatura",
   backup: "Backup completo",
@@ -48,8 +49,11 @@ export function useAppRoute() {
     reference: string,
     replace = false,
   ) {
-    const query = new URLSearchParams({ pessoa: personId, mes: reference });
-    const url = `#/${page}?${query}`;
+    const query =
+      page === "dashboard"
+        ? ""
+        : new URLSearchParams({ pessoa: personId, mes: reference }).toString();
+    const url = `#/${page}${query ? `?${query}` : ""}`;
     if (window.location.hash !== url) {
       window.history[replace ? "replaceState" : "pushState"](null, "", url);
     }
