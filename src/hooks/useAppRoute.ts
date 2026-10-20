@@ -11,6 +11,7 @@ export const pages = {
   backup: "Backup completo",
   importar: "Importar JSON",
   aparencia: "Aparência",
+  dashboard: "Dashboard",
 } as const;
 export type Page = keyof typeof pages;
 interface Route {

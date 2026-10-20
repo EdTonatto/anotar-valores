@@ -1,5 +1,6 @@
 import { formatTimestamp } from "../domain/totals";
 import { CardInvoices } from "./CardInvoices";
+import { Dashboard } from "./Dashboard";
 import { NavigationMenu } from "./NavigationMenu";
 import { Reports } from "./Reports";
 import { ThemeSelector, useThemePreference } from "./ThemeSelector";
@@ -445,6 +446,7 @@ export function App() {
             }}
           />
         )}
+        {page === "dashboard" && <Dashboard data={data} />}
         {page === "aparencia" && (
           <section className="page-panel" aria-label="Preferência de tema">
             <p>
