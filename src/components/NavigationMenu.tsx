@@ -89,6 +89,7 @@ export function NavigationMenu({ context, page, onNavigate }: Props) {
                   [
                     "fatura",
                     "faturasCartao",
+                    "dashboard",
                     "pessoas",
                     "cartoes",
                     "historico",
