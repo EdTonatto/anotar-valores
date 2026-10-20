@@ -9,8 +9,10 @@ import type { AppData, Compra } from "../domain/models";
 import {
   amountInput,
   maskAmountInput,
+  parseAmount,
   PurchaseError,
   savePurchase,
+  allocateShares,
   type SeriesScope,
   type PurchaseDraft,
   type PurchaseField,
@@ -39,6 +41,12 @@ export function PurchaseEditor({
 }: Props) {
   const [scope, setScope] = useState<SeriesScope>("single");
   const [buyerId, setBuyerId] = useState(personId);
+  const initialParticipants = purchase?.participants?.map((participant) => ({
+    personId: participant.personId,
+    share: String(participant.amountCents / purchase.amountCents),
+  }));
+  const [splitEnabled, setSplitEnabled] = useState(!!initialParticipants);
+  const [participants, setParticipants] = useState<{personId: string; share: string}[]>(initialParticipants ?? [{ personId, share: "1" }]);
   const lockedCardId = purchase ? undefined : fixedCardId;
   const [draft, setDraft] = useState<PurchaseDraft>(() => ({
     description: purchase?.description ?? "",
@@ -103,6 +111,7 @@ export function PurchaseEditor({
             purchase?.id,
             purchase ? buyerId : personId,
             scope,
+            splitEnabled ? participants : undefined,
           ),
         )
       ) {
@@ -252,6 +261,30 @@ export function PurchaseEditor({
           </span>
         </label>
       )}
+      <fieldset className="installment-mode">
+        <legend>Responsabilidade pela compra</legend>
+        <label><input type="checkbox" checked={splitEnabled} onChange={(e) => {
+          const enabled = e.target.checked;
+          setSplitEnabled(enabled);
+          if (enabled && participants.length < 2) setParticipants([{personId, share:"0.5"},{personId:data.people.find(p=>p.id!==personId)?.id ?? personId,share:"0.5"}]);
+        }} /> Dividir entre pessoas</label>
+      </fieldset>
+      {splitEnabled && <div className="purchase-split">
+        {participants.map((participant, index) => <div className="installment-fields" key={participant.personId}>
+          <label>Pessoa
+            <select value={participant.personId} onChange={(e) => setParticipants(rows => rows.map((row,i) => i===index ? {...row,personId:e.target.value} : row))}>
+              {data.people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
+            </select>
+          </label>
+          <label>Proporção (ex.: 1/3 ou 0,333)
+            <input inputMode="decimal" value={participant.share} onChange={(e) => setParticipants(rows => rows.map((row,i) => i===index ? {...row,share:e.target.value} : row))} />
+          </label>
+          {participants.length > 2 && <button type="button" onClick={() => setParticipants(rows => rows.filter((_,i)=>i!==index))}>Remover</button>}
+        </div>)}
+        <button type="button" onClick={() => setParticipants(rows => [...rows,{personId:data.people.find(p=>!rows.some(row=>row.personId===p.id))?.id ?? data.people[0]?.id ?? "",share:"0"}])}>+ Participante</button>
+        <button type="button" onClick={() => setParticipants(data.people.map(person=>({personId:person.id,share:String(1/data.people.length)})))}>Dividir igualmente</button>
+        <ul>{(() => { try { const cents = parseAmount(draft.amount); return allocateShares(cents, participants).map(part => <li key={part.personId}>{data.people.find(p=>p.id===part.personId)?.name}: {new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(part.amountCents/100)}</li>); } catch { return <li>Informe proporções válidas que somem 100%.</li>; } })()}</ul>
+      </div>}
       <fieldset className="installment-mode">
         <legend>Forma da compra</legend>
         <label>

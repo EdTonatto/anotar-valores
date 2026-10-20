@@ -24,6 +24,8 @@ export interface Compra {
   updatedAt?: string;
   /** Compra reembolsada/estornada: permanece no histórico, mas não compõe os totais. */
   reimbursed?: boolean;
+  /** Partes exatas em centavos. Ausente em registros legados: 100% para a pessoa da fatura. */
+  participants?: { personId: string; amountCents: number }[];
   /** Valor cobrado nesta fatura, nunca o total da compra parcelada. */
   amountCents: number;
   installment: { current: number; total: number } | null;
@@ -113,6 +115,23 @@ export function isAppData(value: unknown): value is AppData {
       return false;
     if (v.reimbursed !== undefined && typeof v.reimbursed !== "boolean")
       return false;
+    if (v.participants !== undefined) {
+      if (
+        !Array.isArray(v.participants) ||
+        v.participants.length < 2 ||
+        !v.participants.every(
+          (participant) =>
+            record(participant) &&
+            text(participant.personId) &&
+            personIds.has(participant.personId) &&
+            integer(participant.amountCents) &&
+            participant.amountCents > 0,
+        ) ||
+        new Set(v.participants.map((participant) => (participant as { personId: string }).personId)).size !== v.participants.length ||
+        v.participants.reduce((sum, participant) => sum + (participant as { amountCents: number }).amountCents, 0) !== v.amountCents
+      )
+        return false;
+    }
     const i = v.installment;
     if (v.installmentSeriesId !== undefined) {
       if (!text(v.installmentSeriesId) || !record(i)) return false;

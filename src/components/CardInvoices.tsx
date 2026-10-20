@@ -45,8 +45,8 @@ export function CardInvoices({
   return (
     <section aria-label="Fatura completa do cartão">
       <p>
-        Escolha o cartão e o mês. Cada compra pertence a uma pessoa e aparece
-        também na fatura individual dela.
+        Escolha o cartão e o mês. Cada compra aparece uma vez no cartão; em
+        compras divididas, o valor é distribuído entre as faturas pessoais.
       </p>
       <div className="filters page-context">
         <div>
@@ -174,7 +174,10 @@ export function CardInvoices({
                   </strong>
                   <small>Registrada em: {formatTimestamp(p.createdAt)}</small>
                   <small>
-                    {person.name} ·{" "}
+                    {(p.participants ?? [{ personId: person.id, amountCents: p.amountCents }]).map((participant) => {
+                      const participantPerson = data.people.find((item) => item.id === participant.personId);
+                      return `${participantPerson?.name ?? "Pessoa"} ${formatCents(BigInt(participant.amountCents))}`;
+                    }).join(" · ")} ·{" "}
                     {p.installment
                       ? `Parcela ${p.installment.current}/${p.installment.total}`
                       : "À vista"}

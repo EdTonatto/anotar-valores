@@ -23,7 +23,10 @@ export function selectInvoiceSummary(
     if (!group) throw new Error("Compra vinculada a um cartão inexistente.");
     group.purchases.push(purchase);
     if (!purchase.reimbursed)
-      group.subtotalCents += BigInt(purchase.amountCents);
+      group.subtotalCents += BigInt(
+        purchase.participants?.find((participant) => participant.personId === personId)?.amountCents ??
+        (purchase.participants ? 0 : purchase.amountCents),
+      );
   }
   return {
     invoice,
@@ -53,28 +56,27 @@ export function selectCardInvoiceSummary(
 ) {
   const invoices = new Map(
     data.invoices
-      .filter((i) => i.reference === reference)
+      .filter((i) => i.reference === reference || data.purchases.some((p) => p.invoiceId === i.id && p.participants?.length && data.invoices.find((owner) => owner.id === p.invoiceId)?.reference === reference))
       .map((i) => [i.id, i]),
   );
   const people = new Map(data.people.map((p) => [p.id, p]));
   const purchases = newestFirst(
-    data.purchases.filter(
-      (p) => p.cardId === cardId && invoices.has(p.invoiceId),
-    ),
+    data.purchases.filter((p) => p.cardId === cardId && data.invoices.some((invoice) => invoice.id === p.invoiceId && invoice.reference === reference)),
   ).map((purchase) => ({
     purchase,
-    person: people.get(invoices.get(purchase.invoiceId)!.personId)!,
+    person: people.get(purchase.participants?.[0]?.personId ?? invoices.get(purchase.invoiceId)!.personId)!,
+    participants: purchase.participants ?? [{ personId: invoices.get(purchase.invoiceId)!.personId, amountCents: purchase.amountCents }],
   }));
   const groups = data.people
     .map((person) => {
-      const rows = purchases.filter((row) => row.person.id === person.id);
+      const rows = purchases.filter((row) => row.participants.some((participant) => participant.personId === person.id));
       return {
         person,
         purchaseCount: rows.length,
         subtotalCents: rows.reduce(
           (sum, row) =>
             sum +
-            (row.purchase.reimbursed ? 0n : BigInt(row.purchase.amountCents)),
+            (row.purchase.reimbursed ? 0n : BigInt(row.participants.find((participant) => participant.personId === person.id)?.amountCents ?? 0)),
           0n,
         ),
       };
@@ -93,7 +95,7 @@ export function selectCardInvoiceSummary(
     ),
     groups,
     purchaseCount: purchases.length,
-    totalCents: groups.reduce((sum, group) => sum + group.subtotalCents, 0n),
+    totalCents: purchases.reduce((sum, row) => sum + (row.purchase.reimbursed ? 0n : BigInt(row.purchase.amountCents)), 0n),
   };
 }
 
