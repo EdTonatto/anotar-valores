@@ -340,9 +340,17 @@ export function Cards({
                       {purchases.length ? (
                         <ul className="purchases">
                           {purchases.map((p) => (
-                            <li key={p.id} className={`purchase-row${p.reimbursed ? " purchase-reimbursed" : ""}`}>
+                            <li
+                              key={p.id}
+                              className={`purchase-row${p.reimbursed ? " purchase-reimbursed" : ""}`}
+                            >
                               <div>
-                                <strong>{p.description}{p.reimbursed ? " (reembolsada/estornada)" : ""}</strong>
+                                <strong>
+                                  {p.description}
+                                  {p.reimbursed
+                                    ? " (reembolsada/estornada)"
+                                    : ""}
+                                </strong>
                                 <small>
                                   Registrada em: {formatTimestamp(p.createdAt)}
                                 </small>
@@ -356,9 +364,19 @@ export function Cards({
                               <div className="purchase-item-actions">
                                 <button
                                   disabled={!writable}
-                                  onClick={() => update(setPurchaseReimbursed(data, p.id, !p.reimbursed))}
+                                  onClick={() =>
+                                    update(
+                                      setPurchaseReimbursed(
+                                        data,
+                                        p.id,
+                                        !p.reimbursed,
+                                      ),
+                                    )
+                                  }
                                 >
-                                  {p.reimbursed ? "Desmarcar estorno" : "Marcar estorno"}
+                                  {p.reimbursed
+                                    ? "Desmarcar estorno"
+                                    : "Marcar estorno"}
                                 </button>
                                 <button
                                   disabled={!writable}
