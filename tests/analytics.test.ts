@@ -25,8 +25,8 @@ test("dashboard agrega por pessoa/cartão e mantém precisão em centavos", () =
   const filters = { ...emptyDashboardFilters(), from: "2026-01", to: "2026-02" };
   const result = getDashboardAnalytics(data, filters);
   assert.equal(result.totalCents, 1535n);
-  assert.equal(result.purchaseCount, 4);
-  assert.equal(result.activeCount, 4);
+  assert.equal(result.purchaseCount, 3);
+  assert.equal(result.activeCount, 3);
   assert.equal(result.leadingPerson?.id, "p1");
   assert.equal(result.leadingCard?.id, "c1");
   assert.equal(result.personCard.find((row) => row.person.id === "p1")?.cards.find((item) => item.card.id === "c1")?.totalCents, 1010n);
@@ -39,7 +39,7 @@ test("filtros combinados por intervalo, pessoa, cartão e tipo", () => {
   data = savePurchase(data, "p1", "2026-03", draft("c2", "30,00", true));
   const filters = { ...emptyDashboardFilters(), from: "2026-02", to: "2026-03", people: ["p1"], cards: ["c2"], purchaseType: "installment" as const };
   const rows = getDashboardPurchases(data, filters);
-  assert.equal(rows.length, 3);
+  assert.equal(rows.length, 1);
   assert.ok(rows.every((row) => row.personId === "p1" && row.cardId === "c2" && row.installment));
   assert.deepEqual(getDashboardAnalytics(data, filters).months.map((month) => month.reference), ["2026-02", "2026-03"]);
 });

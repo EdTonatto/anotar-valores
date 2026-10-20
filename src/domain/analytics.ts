@@ -39,7 +39,7 @@ export const emptyDashboardFilters = (reference = ""): DashboardFilters => ({
 });
 
 function isReference(value: string) {
-  return /^(?!0000)\\d{4}-(0[1-9]|1[0-2])$/.test(value);
+  return /^(?!0000)\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
 export function listReferences(data: AppData): string[] {
