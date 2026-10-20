@@ -83,7 +83,9 @@ test("WhatsApp risca compras reembolsadas e exclui seu valor do subtotal", () =>
   const data = fixture();
   data.purchases[0].reimbursed = true;
   const text = whatsappReport(data, "p", "2026-10");
-  assert.ok(text.includes("~• Compra um (2/5) — R$ 134,90 — reembolsada/estornada~"));
+  assert.ok(
+    text.includes("~• Compra um (2/5) — R$ 134,90 — reembolsada/estornada~"),
+  );
   assert.ok(text.includes("2 itens · *Subtotal: R$ 120,00*"));
   assert.ok(text.includes("*Total geral: R$ 120,00*"));
 });
