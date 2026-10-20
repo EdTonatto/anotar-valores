@@ -5,6 +5,17 @@ export interface CardSummary {
   purchases: Compra[];
   subtotalCents: bigint;
 }
+/** Valor desta compra atribuído à pessoa; compras antigas pertencem integralmente à fatura de origem. */
+export function selectPurchasePersonAmountCents(
+  purchase: Compra,
+  personId: string,
+): number {
+  return (
+    purchase.participants?.find(
+      (participant) => participant.personId === personId,
+    )?.amountCents ?? (purchase.participants ? 0 : purchase.amountCents)
+  );
+}
 /** Fonte única para tela e relatórios: totais derivados, nunca persistidos. */
 export function selectInvoiceSummary(
   data: AppData,
@@ -24,9 +35,7 @@ export function selectInvoiceSummary(
     group.purchases.push(purchase);
     if (!purchase.reimbursed)
       group.subtotalCents += BigInt(
-        purchase.participants?.find(
-          (participant) => participant.personId === personId,
-        )?.amountCents ?? (purchase.participants ? 0 : purchase.amountCents),
+        selectPurchasePersonAmountCents(purchase, personId),
       );
   }
   return {
