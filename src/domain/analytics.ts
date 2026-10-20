@@ -128,8 +128,14 @@ export function getDashboardAnalytics(data: AppData, filters: DashboardFilters) 
   const monthly = new Map<string, bigint>();
   for (const purchase of activePurchases)
     monthly.set(purchase.reference, (monthly.get(purchase.reference) ?? 0n) + BigInt(purchase.amountCents));
-  const first = isReference(filters.from) ? filters.from : listReferences(data)[0];
-  const last = isReference(filters.to) ? filters.to : listReferences(data).at(-1);
+  const knownReferences = listReferences(data);
+  const last = isReference(filters.to) ? filters.to : knownReferences.at(-1);
+  let first = isReference(filters.from) ? filters.from : knownReferences[0];
+  if (!filters.from && !filters.to && last) {
+    const [latestYear, latestMonth] = last.split("-").map(Number);
+    const start = Math.max(0, latestYear * 12 + latestMonth - 1 - 5);
+    first = `${Math.floor(start / 12)}-${String((start % 12) + 1).padStart(2, "0")}`;
+  }
   const months: { reference: string; totalCents: bigint }[] = [];
   if (first && last && first <= last) {
     let [year, month] = first.split("-").map(Number);
