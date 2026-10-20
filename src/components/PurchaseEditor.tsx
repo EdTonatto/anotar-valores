@@ -135,6 +135,8 @@ export function PurchaseEditor({
         current: "",
         total: "",
       }));
+      setSplitEnabled(false);
+      setParticipants([{ personId, share: "1" }]);
       setError(null);
       setNotice("Compra adicionada. Pode lançar a próxima no mesmo cartão.");
       descriptionRef.current?.focus();
