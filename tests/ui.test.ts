@@ -606,6 +606,21 @@ test("cada página monta somente sua área e o menu não executa ações de cóp
   assert.equal(screen.queryByRole("button", { name: /Renomear cartão/ }), null);
 });
 
+test("Dashboard é uma página independente acessível pelo menu e usa dados existentes", async () => {
+  const u = await start();
+  await go(u, "Dashboard");
+  assert.ok(screen.getByRole("heading", { name: "Dashboard" }));
+  assert.ok(screen.getByLabelText("Pessoas"));
+  assert.ok(screen.getByLabelText("Cartões"));
+  assert.ok(screen.getByText("Nenhuma compra encontrada"));
+  assert.equal(screen.queryByRole("button", { name: "+ Nova compra" }), null);
+  await go(u, "Fatura por pessoa");
+  await add(u, "Compra para análise", "12356");
+  await go(u, "Dashboard");
+  assert.ok(screen.getAllByText("Compra para análise").length > 0);
+  assert.ok(screen.getAllByText("R$ 123,56").length > 0);
+});
+
 test("rotas preservam pessoa e mês em Voltar, Avançar, recarga e seleção no histórico", async () => {
   const u = await start();
   await add(u, "Outubro", "42,00");

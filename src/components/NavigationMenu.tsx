@@ -94,6 +94,7 @@ export function NavigationMenu({ context, page, onNavigate }: Props) {
                     "historico",
                   ],
                 ],
+                ["Analisar", ["dashboard"]],
                 [
                   "Compartilhar e backup",
                   ["whatsapp", "exportar", "backup", "importar"],
